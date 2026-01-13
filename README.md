@@ -2,15 +2,14 @@
 
 A Mudlet package for [Federation 2 Community Edition](https://federation2.com) that provides mapping, navigation, automated trading, factory management, and quality-of-life improvements.
 
-## Components
+## Features
 
 | Component | Commands | Description |
 |-----------|----------|-------------|
 | Map | `nav`, `map` | Auto-mapping builds the map as you explore. Speedwalk navigation gets you anywhere fast. Exploration mode automatically visits unmapped rooms. |
 | Hauling | `haul` | Automated trading that adapts to your rank. Commanders/Captains run Armstrong Cuthbert jobs, Adventurers do Akaturi deliveries, Merchants+ trade between exchanges. |
-| Factory | `factory`, `fac` | View status of all your factories in one table. Flush all production to market with a single command. |
-| Commodities | `price`, `pr` | Check commodity prices across all cartel exchanges. Find the best places to buy and sell, with profit calculations. |
-| Bulk Commands | `bb`, `bs` | Buy or sell commodities in bulk at exchanges. Automatically fills your hold or sells all cargo with margin reporting. |
+| Factory | `factory` | View status of all your factories in one table. Flush all production to market with a single command. |
+| Commodities | `price`, `bb`, `bs` | Check commodity prices across all cartel exchanges. Find the best places to buy and sell, with profit calculations. Buy or sell commodities in bulk at exchanges. |
 | Auto-Refuel | `f2t settings` | Automatically refuels your ship when landing at shuttlepads. Triggers when fuel drops below your configured threshold. |
 | Stamina Monitor | `f2t settings` | Detects low stamina and navigates to buy food. Pauses active automation, refills stamina, then returns you to where you were. |
 | Death Monitor | `f2t settings` | Handles death automatically by stopping all automation and running `insure`. Permanently locks the death room so navigation avoids it. |
