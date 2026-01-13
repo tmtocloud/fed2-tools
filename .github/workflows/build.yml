@@ -69,6 +69,17 @@ jobs:
           # Replace existing dev release assets
           fail_on_unmatched_files: true
 
+      - name: Get commit message
+        if: steps.version.outputs.is_release == 'true'
+        id: commit
+        run: |
+          # Get the commit message (subject and body) for the tagged commit
+          COMMIT_MSG=$(git log -1 --format='%B' HEAD)
+          # Store in output using heredoc for multiline
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create tagged release
         if: steps.version.outputs.is_release == 'true'
         uses: softprops/action-gh-release@v2
@@ -77,7 +88,7 @@ jobs:
           body: |
             ## fed2-tools ${{ steps.version.outputs.release_name }}
 
-            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            ${{ steps.commit.outputs.message }}
           draft: false
           prerelease: false
           files: build/*.mpackage
