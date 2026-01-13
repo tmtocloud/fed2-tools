@@ -1,0 +1,136 @@
+-- Hauling Component Initialization
+-- Automated commodity trading for merchant rank and above
+
+-- Global hauling state
+F2T_HAULING_STATE = {
+    active = false,
+    paused = false,
+    paused_room_id = nil, -- Room ID where hauling was paused (for location validation on resume)
+    stopping = false,     -- Graceful stop requested (finish current cycle)
+    mode = nil,           -- Current hauling mode: "ac", "akaturi", "exchange"
+    current_phase = nil,  -- Current phase in the state machine
+    handler_id = nil,     -- GMCP event handler ID for current mode
+
+    -- Commodity queue and caching
+    commodity_queue = {},       -- Top 5 commodities from price all (sorted by profit)
+    queue_index = 1,            -- Current position in queue
+    current_commodity = nil,    -- Current commodity being traded
+
+    -- Location tracking
+    buy_location = nil,         -- {system, planet, price}
+    sell_location = nil,        -- {system, planet, price}
+
+    -- Profit tracking
+    expected_profit = 0,        -- Expected profit per ton when commodity was selected
+    actual_cost = 0,            -- What we actually paid per ton (our purchase price)
+    margin_threshold_pct = 40,  -- Minimum profit margin % (profit/cost) to continue trading (default 40%)
+
+    -- Per-commodity tracking
+    current_commodity_stats = { -- Stats for current commodity cycle
+        lots_bought = 0,
+        total_cost = 0,
+        lots_sold = 0,
+        total_revenue = 0,
+        profit = 0
+    },
+    commodity_total_profit = 0, -- Accumulated profit across all cycles of current commodity
+
+    -- Overall statistics
+    total_cycles = 0,           -- Total complete cycles (all commodities)
+    commodity_cycles = 0,       -- Cycles for current commodity
+    session_profit = 0,         -- Total profit this session
+    commodity_history = {},     -- History: [{commodity, cycles, profit}, ...]
+
+    -- Sell attempt tracking
+    sell_attempts = 0,          -- Track how many exchanges we've tried to sell to
+
+    -- Cycle pause tracking
+    cycle_pause_return_location = nil,  -- Room to return to after cycle pause
+
+    -- Armstrong Cuthbert job tracking (Commander, Captain ranks)
+    ac_job = nil,                   -- Currently selected job (or nil)
+    ac_job_taken = false,           -- Job was taken by someone else
+    ac_cargo_collected = false,     -- Cargo collection complete
+    ac_cargo_delivered = false,     -- Cargo delivery complete
+    ac_collect_sent = false,        -- Collect command sent (prevent duplicates)
+    ac_deliver_sent = false,        -- Deliver command sent (prevent duplicates)
+    ac_collect_error = nil,         -- Collection error message
+    ac_deliver_error = nil,         -- Delivery error message
+    ac_deliver_waiting = false,     -- Waiting for stevedores
+    ac_50_milestone_shown = false,  -- Whether 50 credit message shown
+    ac_payment_amount = nil,        -- Payment received for job
+
+    -- Akaturi contract tracking (Adventurer rank)
+    akaturi_contract = {
+        pickup_planet = nil,
+        pickup_room = nil,
+        delivery_planet = nil,
+        delivery_room = nil,
+        item = nil
+    },
+    akaturi_package_collected = false,
+    akaturi_package_delivered = false,
+    akaturi_pickup_error = false,
+    akaturi_delivery_error = false,
+    akaturi_pickup_sent = false,
+    akaturi_delivery_sent = false,
+    akaturi_payment_amount = nil
+}
+
+-- Settings registration
+f2t_settings_register("hauling", "margin_threshold", {
+    description = "Minimum profit margin % to continue trading a commodity",
+    default = 40,
+    validator = function(value)
+        local num = tonumber(value)
+        if not num or num < 0 or num > 100 then
+            return false, "Must be a number between 0 and 100"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "cycle_pause", {
+    description = "Seconds to pause after completing all 5 commodities (0 = no pause)",
+    default = 60,
+    validator = function(value)
+        local num = tonumber(value)
+        if not num or num < 0 or num > 300 then
+            return false, "Must be a number between 0 and 300"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "use_safe_room", {
+    description = "Return to safe room on completion, failure, or cycle pause",
+    default = false,
+    validator = function(value)
+        if value ~= true and value ~= false and value ~= "true" and value ~= "false" then
+            return false, "Must be true or false"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "excluded_commodities", {
+    description = "Comma-separated list of commodities to exclude from trading",
+    default = "",
+    validator = function(value)
+        if type(value) ~= "string" then
+            return false, "Must be a comma-separated string"
+        end
+        return true
+    end
+})
+
+-- Register with stamina monitor for automatic food buying during hauling
+f2t_stamina_register_client({
+    pause_callback = f2t_hauling_pause,
+    resume_callback = f2t_hauling_resume,
+    check_active = function()
+        return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+    end
+})
+
+f2t_debug_log("[hauling] Component initialized (stamina monitoring enabled)")

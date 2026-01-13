@@ -1,0 +1,81 @@
+name: Build Package
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:  # Allow manual triggers
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for commit counting and tags
+
+      - name: Set version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Tagged release: use tag name (strip 'v' prefix)
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+            echo "release_name=v$VERSION" >> $GITHUB_OUTPUT
+          else
+            # Dev build: latest tag version + short commit hash
+            # Get latest vX.Y.Z tag, or default to v0.0.0
+            LATEST_TAG=$(git describe --tags --match "v*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+            BASE_VERSION=$(echo "$LATEST_TAG" | sed 's/^v//')
+            SHORT_SHA=$(git rev-parse --short HEAD)
+
+            VERSION="${BASE_VERSION}-${SHORT_SHA}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
+            echo "release_name=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build package
+        shell: pwsh
+        run: ./build.ps1 -Version "${{ steps.version.outputs.version }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fed2-tools-${{ steps.version.outputs.version }}
+          path: build/*.mpackage
+
+      - name: Update dev release
+        if: steps.version.outputs.is_release == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          name: Development Build
+          body: |
+            Latest development build from main branch.
+
+            **Build:** ${{ steps.version.outputs.version }}
+            **Commit:** ${{ github.sha }}
+
+            This is an automated pre-release and may be unstable.
+          prerelease: true
+          files: build/*.mpackage
+          # Replace existing dev release assets
+          fail_on_unmatched_files: true
+
+      - name: Create tagged release
+        if: steps.version.outputs.is_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ steps.version.outputs.release_name }}
+          body: |
+            ## fed2-tools ${{ steps.version.outputs.release_name }}
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
+          files: build/*.mpackage
+          fail_on_unmatched_files: true

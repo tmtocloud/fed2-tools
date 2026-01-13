@@ -1,0 +1,7 @@
+{
+  "name": "fed2-tools",
+  "author": "Your Name",
+  "description": "Federation 2 Community Edition Mudlet tools collection",
+  "mudletVersion": "4.0+",
+  "dependencies": []
+}
