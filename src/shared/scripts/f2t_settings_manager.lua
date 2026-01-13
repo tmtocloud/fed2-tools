@@ -50,14 +50,16 @@ end
 
 -- Set a setting value
 function f2t_settings_set(component, setting_name, value)
+    -- Reject unregistered settings
+    if not F2T_SETTINGS_REGISTRY[component] or not F2T_SETTINGS_REGISTRY[component][setting_name] then
+        return false, string.format("Unknown setting '%s'", setting_name)
+    end
+
     f2t_settings = f2t_settings or {}
     f2t_settings[component] = f2t_settings[component] or {}
 
-    -- Get default type if registered
-    local default_type = nil
-    if F2T_SETTINGS_REGISTRY[component] and F2T_SETTINGS_REGISTRY[component][setting_name] then
-        default_type = type(F2T_SETTINGS_REGISTRY[component][setting_name].default)
-    end
+    -- Get default type from registry
+    local default_type = type(F2T_SETTINGS_REGISTRY[component][setting_name].default)
 
     -- Convert string input to proper type
     if type(value) == "string" then
@@ -73,13 +75,11 @@ function f2t_settings_set(component, setting_name, value)
     end
 
     -- Validate if validator exists
-    if F2T_SETTINGS_REGISTRY[component] and F2T_SETTINGS_REGISTRY[component][setting_name] then
-        local validator = F2T_SETTINGS_REGISTRY[component][setting_name].validator
-        if validator then
-            local valid, error_msg = validator(value)
-            if not valid then
-                return false, error_msg
-            end
+    local validator = F2T_SETTINGS_REGISTRY[component][setting_name].validator
+    if validator then
+        local valid, error_msg = validator(value)
+        if not valid then
+            return false, error_msg
         end
     end
 
@@ -90,13 +90,20 @@ function f2t_settings_set(component, setting_name, value)
 end
 
 -- Clear a setting (revert to default)
+-- Returns: true on success, false and error message on failure
 function f2t_settings_clear(component, setting_name)
+    -- Reject unregistered settings
+    if not F2T_SETTINGS_REGISTRY[component] or not F2T_SETTINGS_REGISTRY[component][setting_name] then
+        return false, string.format("Unknown setting '%s'", setting_name)
+    end
+
     f2t_settings = f2t_settings or {}
     f2t_settings[component] = f2t_settings[component] or {}
 
     f2t_settings[component][setting_name] = nil
     f2t_save_settings()
     f2t_debug_log("[settings] Cleared: %s.%s", component, setting_name)
+    return true
 end
 
 -- List all settings for a component
@@ -250,11 +257,16 @@ function f2t_handle_settings_command(component, args_str)
             return false
         end
 
-        f2t_settings_clear(component, words[2])
-        local default_value = f2t_settings_get(component, words[2])
-        cecho(string.format("\n<green>[%s]<reset> Setting <cyan>%s<reset> cleared (reverted to default: <yellow>%s<reset>)\n",
-            component, words[2], tostring(default_value)))
-        return true
+        local success, error_msg = f2t_settings_clear(component, words[2])
+        if success then
+            local default_value = f2t_settings_get(component, words[2])
+            cecho(string.format("\n<green>[%s]<reset> Setting <cyan>%s<reset> cleared (reverted to default: <yellow>%s<reset>)\n",
+                component, words[2], tostring(default_value)))
+            return true
+        else
+            cecho(string.format("\n<red>[%s]<reset> %s\n", component, error_msg))
+            return false
+        end
     end
 
     -- Unknown subcommand
