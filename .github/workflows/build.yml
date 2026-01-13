@@ -6,6 +6,9 @@ on:
     tags: ['v*']
   workflow_dispatch:  # Allow manual triggers
 
+permissions:
+  contents: write  # Required to create releases
+
 jobs:
   build:
     runs-on: ubuntu-latest
