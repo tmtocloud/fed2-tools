@@ -1,10 +1,17 @@
 -- Bulk buy logic for f2t-bulk-commands
 
 -- Start a bulk buy operation
--- @param commodity: The commodity to buy
+-- @param commodity: The commodity to buy (supports short names like "petros")
 -- @param requested_lots: Number of lots to buy (nil = fill hold)
 -- @param callback: Optional callback(commodity, lots_bought, status, error_msg) for programmatic mode
 function f2t_bulk_buy_start(commodity, requested_lots, callback)
+    -- Resolve short names to full names
+    local resolved, was_short = f2t_resolve_commodity(commodity)
+    if was_short then
+        f2t_debug_log("[bulk-buy] Resolved short name '%s' to '%s'", commodity, resolved)
+    end
+    commodity = resolved
+
     f2t_debug_log("[bulk-buy] Starting bulk buy: commodity=%s, requested=%s, mode=%s",
         commodity, tostring(requested_lots), callback and "programmatic" or "user")
 
@@ -97,7 +104,7 @@ function f2t_bulk_buy_next()
     end
 
     f2t_debug_log("[bulk-buy] Sending buy command (%d remaining)", F2T_BULK_STATE.remaining)
-    send(string.format("buy %s", F2T_BULK_STATE.commodity), false)
+    send(string.format("buy %s", string.lower(F2T_BULK_STATE.commodity)), false)
 end
 
 -- Handle successful buy
