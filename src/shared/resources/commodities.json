@@ -55,7 +55,7 @@
         {"name": "Electros", "basePrice": 250},
         {"name": "GAsChips", "basePrice": 450},
         {"name": "Lasers", "basePrice": 470},
-        {"name": "NanoFabrics", "shortName": "nanofab", "basePrice": 850},
+        {"name": "NanoFabrics", "shortName": "nanfab", "basePrice": 850},
         {"name": "Nanos", "basePrice": 550},
         {"name": "Powerpacks", "shortName": "packs", "basePrice": 680},
         {"name": "Synths", "basePrice": 560},

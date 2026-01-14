@@ -21,11 +21,7 @@ function f2t_map_navigate(destination)
         shuttlepad = true,
         exchange = true,
         link = true,
-        orbit = true,
-        warehouse = true,
-        broker = true,
-        palace = true,
-        clinic = true
+        orbit = true
     }
 
     -- Flag shortcuts
