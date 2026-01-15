@@ -69,9 +69,8 @@ elseif subcommand == "settings" then
     f2t_handle_settings_command("shared", settings_args)
 
 elseif subcommand == "version" then
-    -- f2t version - Show package version
-    local version = F2T_VERSION or "unknown"
-    cecho(string.format("\n<green>[fed2-tools]<reset> Version: %s\n", version))
+    -- f2t version - Show package version and check for updates
+    f2t_check_latest_version()
 
 else
     cecho(string.format("\n<red>[f2t]<reset> Unknown command: %s\n", subcommand))
