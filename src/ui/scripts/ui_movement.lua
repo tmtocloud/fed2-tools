@@ -439,7 +439,7 @@ function ui_move_se()
   send("se")
 end
 
-function ui_moveS()
+function ui_move_s()
   send("s")
 end
 

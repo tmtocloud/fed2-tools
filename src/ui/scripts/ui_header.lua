@@ -14,7 +14,7 @@ function ui_build_header()
 
   --create the six labels inside the box: rank, hold space, fuel, stamina, groats, slithies
   for i = 1, 6 do
-    UI.["Label"..i] = Geyser.Label:new(
+    UI["Label"..i] = Geyser.Label:new(
       {
         name = "UI.Label"..i,
       },

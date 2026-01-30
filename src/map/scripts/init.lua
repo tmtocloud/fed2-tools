@@ -124,13 +124,16 @@ F2T_MAP_CURRENT_ROOM_ID = nil
 
 -- Open map widget to initialize the map database
 -- This ensures the map database exists for auto-mapping
-local success, err = pcall(openMapWidget)
-if success then
-    f2t_debug_log("[map] Map widget opened and database initialized")
-else
-    f2t_debug_log("[map] WARNING: Failed to open map widget: %s", tostring(err))
-end
 
+--If UI is enabled, map will appear in a frame with a movable tab, so there is no need to open default map widget. Unsure if this is important for database at this time
+if not F2T_UI_ENABLED then
+  local success, err = pcall(openMapWidget)
+  if success then
+      f2t_debug_log("[map] Map widget opened and database initialized")
+  else
+      f2t_debug_log("[map] WARNING: Failed to open map widget: %s", tostring(err))
+  end
+end
 -- ========================================
 -- Initialization Message
 -- ========================================
