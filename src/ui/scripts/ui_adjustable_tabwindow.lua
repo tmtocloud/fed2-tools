@@ -285,7 +285,7 @@ end
 --- @tparam string font the font to use for that tab
 function Adjustable.TabWindow:setSingleTabFont(tabName, font)
     local funcName = "EMCO:setSingleTabFont(tabName, font)"
-    if not table.contains(self.tabs, tabName) then
+    if not f2t_has_value(self.tabs, tabName) then
         error("tabName must be an existing tab")
     end
     self[tabName].adjLabel:setFont(font)

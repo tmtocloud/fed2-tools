@@ -9,7 +9,7 @@ local quantity = matches[5]
 local price    = matches[6]
 
 -- Store the data
-table.insert(ui_trading_data.data, {
+table.insert(UI.trading_data.data, {
   system   = system,
   planet   = planet,
   action   = action,
@@ -17,5 +17,5 @@ table.insert(ui_trading_data.data, {
   price    = tonumber(price)
 })
 
-ui_trading_data.last_line_was_price = true  -- Flag for blank line trigger
+UI.trading_data.last_line_was_price = true  -- Flag for blank line trigger
 deleteLine()

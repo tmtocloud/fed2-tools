@@ -13,4 +13,4 @@ else
 end
 
 send(matches[1], false)
-ui_chat_window:cecho('<ansiCyan>You ' .. display .. ': "' .. text .. '"\n')
+UI.chat_window:cecho('<ansiCyan>You ' .. display .. ': "' .. text .. '"\n')

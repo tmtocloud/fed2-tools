@@ -13,7 +13,7 @@ f2t_register_help("ui", {
         {cmd = "ui off", desc = "Disable ui"}
     },
     examples = {
-        "ui on  # Turn UI on,
+        "ui on  # Turn UI on",
         "ui off # Turn UI off"
     }
 })

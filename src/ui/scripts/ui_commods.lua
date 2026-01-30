@@ -39,12 +39,12 @@ function ui_commodities()
 end
 
 function ui_output_commodities()
-    if not ui_commodities_window then
+    if not UI.commodities_window then
         f2t_debug_log("[ui] commodities_window not available")
         return
     end
     
-    clearWindow("ui_commodities_window")
+    clearWindow("UI.commodities_window")
 
     local commodityData = ui_commodities()
 
@@ -54,8 +54,8 @@ function ui_output_commodities()
         if commodity.shortName then
             displayName = string.format("%s (%s)", commodity.name, commodity.shortName)
         end
-        ui_commodities_window:echo(finalList,string.format("%s (%d)\n", displayName, commodity.basePrice))
+        UI.commodities_window:echo(finalList,string.format("%s (%d)\n", displayName, commodity.basePrice))
     end
 
-    f2t_debug_log("[ui] Displayed %d commodities", #formattedCommods)
+    f2t_debug_log("[ui] Displayed %d commodities", #commodityData)
 end

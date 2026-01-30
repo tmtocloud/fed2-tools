@@ -39,7 +39,7 @@ function ui_color_percent(num_cur, num_max) --colorize based on a percentage
 end
 
 -- Establish ranks as integers for logic that displays based on rank
-ui_ranks = {
+UI.ranks = {
   ["Groundhog"]     = 0,
   ["Commander"]     = 1,
   ["Captain"]       = 2,
@@ -58,7 +58,7 @@ ui_ranks = {
 --everyone over Financier has no cap (but may have a cap of 1,000,000,000?)
 --planets and companies do have a cap of 1,000,000,000 but we don't track this so it's fine
 --businesses have a cap of 100,000,000 but we also don't track this so it's still fine
-ui_magic_cash_numbers = {
+UI.magic_cash_numbers = {
   ["Commander"] = 250000,
   ["Captain"] = 400000,
   ["Adventurer"] = 600000,
@@ -73,7 +73,7 @@ ui_magic_cash_numbers = {
 --certainly there's a better way to do it, but distances manually counted using the map
 --(https://federation2.com/guide/#sec-20.10)
 --used with CommanderWork triggers
-ui_sol_distances = {
+UI.sol_distances = {
   BrassCastilo = 5,
   BrassDoris = 2,
   BrassEarth = 8,

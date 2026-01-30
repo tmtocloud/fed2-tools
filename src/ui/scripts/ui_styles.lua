@@ -1,6 +1,6 @@
-ui_style = ui_style or {}
+UI.style = UI.style or {}
 
-ui_style.frame_css = [[
+UI.style.frame_css = [[
   background-color: black;
   border-style: solid;
   border-width: 1px;
@@ -10,7 +10,7 @@ ui_style.frame_css = [[
 ]]
   
 -- style the labels: background color and a little border between each label
-ui_style.label_css = [[
+UI.style.label_css = [[
   background-color: rgba(77,77,77,100); /*because DimGrey is not dark enough*/
   border-right-style: solid;
   border-left-style: solid;
@@ -21,42 +21,42 @@ ui_style.label_css = [[
 
 -- Styling for tabs
 --future?: some method to set text size on tabs
-ui_style.active_tab_text    = "white"     --active tab text color
-ui_style.active_tab_color   = "black"     --active tab window color
-ui_style.inactive_tab_text  = "lightgrey" --inactive tab text color
-ui_style.inactive_tab_color = "dimgrey"   --inactive tab window color
+UI.style.active_tab_text    = "white"     --active tab text color
+UI.style.active_tab_color   = "black"     --active tab window color
+UI.style.inactive_tab_text  = "lightgrey" --inactive tab text color
+UI.style.inactive_tab_color = "dimgrey"   --inactive tab window color
 
 -- active tab 
-ui_style.active_tab_css = ui_style.active_tab_css or [[
-  background-color: ]] .. ui_style.active_tab_color .. [[;
-  color: ]] .. ui_style.active_tab_text .. [[;
+UI.style.active_tab_css = UI.style.active_tab_css or [[
+  background-color: ]] .. UI.style.active_tab_color .. [[;
+  color: ]] .. UI.style.active_tab_text .. [[;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   border-width: 1px;
   border-style: solid;
-  border-color: ]] .. ui_style.active_tab_text .. [[;
+  border-color: ]] .. UI.style.active_tab_text .. [[;
   margin-right: 1px;
   margin-left: 1px;
   qproperty-alignment: 'AlignVCenter';
 ]]
   
 -- inactive tab - will highlight with the active tab colors on mouseover
-ui_style.inactive_tab_css = ui_style.inactive_tab_css or [[
+UI.style.inactive_tab_css = UI.style.inactive_tab_css or [[
   QLabel::hover{
-    background-color: ]] .. ui_style.active_tab_color .. [[;
-    color: ]] .. ui_style.active_tab_text .. [[;
+    background-color: ]] .. UI.style.active_tab_color .. [[;
+    color: ]] .. UI.style.active_tab_text .. [[;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     border-width: 1px;
     border-style: solid;
-    border-color: ]] .. ui_style.active_tab_text .. [[;
+    border-color: ]] .. UI.style.active_tab_text .. [[;
     margin-right: 1px;
     margin-left: 1px;
     qproperty-alignment: 'AlignVCenter';
   }
   QLabel::!hover{
-    background-color: ]] .. ui_style.inactive_tab_color .. [[;
-    color: ]] .. ui_style.inactive_tab_text .. [[;
+    background-color: ]] .. UI.style.inactive_tab_color .. [[;
+    color: ]] .. UI.style.inactive_tab_text .. [[;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
     margin-right: 1px;
@@ -66,24 +66,24 @@ ui_style.inactive_tab_css = ui_style.inactive_tab_css or [[
 ]]
 
 -- The outer border of the window, which should never be seen since it's being covered by a container
-ui_style.footer_css = [[
-  background-color: ]] .. ui_style.active_tab_color .. [[;
+UI.style.footer_css = [[
+  background-color: ]] .. UI.style.active_tab_color .. [[;
   border-bottom-left-radius: 1px;
   border-bottom-right-radius: 1px;
   border-width: 1px;
   border-style: solid;
-  border-color: ]] .. ui_style.active_tab_text .. [[;
+  border-color: ]] .. UI.style.active_tab_text .. [[;
 ]]
 
 -- The core of the window, which should never be seen because we're using it as a container
-ui_style.center_css = [[
-  background-color: ]] .. ui_style.inactive_tab_color .. [[;
+UI.style.center_css = [[
+  background-color: ]] .. UI.style.inactive_tab_color .. [[;
   border-radius: 5px;
   margin: 5px;
 ]]
 
 -- Modern button styling
-ui_style.button_css = [[
+UI.style.button_css = [[
   QLabel{
     background-color: rgba(40, 40, 45, 200);
     border-style: solid;
@@ -101,7 +101,7 @@ ui_style.button_css = [[
   }
 ]]
 
-ui_style.disabled_button_css = [[
+UI.style.disabled_button_css = [[
   QLabel{
     background-color: rgba(25, 25, 28, 150);
     border-style: solid;
@@ -114,7 +114,7 @@ ui_style.disabled_button_css = [[
   }
 ]]
 
-ui_style.toggle_button_css = [[
+UI.style.toggle_button_css = [[
   QLabel{
     background-color: rgba(50, 50, 55, 220);
     border-style: solid;

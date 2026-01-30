@@ -1,50 +1,50 @@
 function ui_hauling()
   ------------- Work Button --------------------------------
-  ui_button_work = Geyser.Label:new(
+  UI.button_work = Geyser.Label:new(
     {
-      name    = "ui_button_work",
+      name    = "UI.button_work",
       --x       = "100%+160px",
       --y       = 127,
       --width   = 25,
       --height  = 20,
       message = "<center>W</center>"
     },
-    ui_hauling_button_bar
+    UI.hauling_button_bar
   )
   
-  ui_button_work:setStyleSheet(ui_style.button_css)
-  ui_button_work:setClickCallback("ui_work")
+  UI.button_work:setStyleSheet(UI.style.button_css)
+  UI.button_work:setClickCallback("ui_work")
   
   ------------- Collect Button -------------------------------
-  ui_button_collect = Geyser.Label:new(
+  UI.button_collect = Geyser.Label:new(
     {
-      name    = "ui_button_collect",
+      name    = "UI.button_collect",
       --x       = "100%+187px",
       --y       = 127,
       --width   = 25,
       --height  = 20,
       message = "<center>C</center>"
     },
-    ui_hauling_button_bar
+    UI.hauling_button_bar
   )
   
-  ui_button_collect:setStyleSheet(ui_style.button_css)
-  ui_button_collect:setClickCallback("ui_collect")
+  UI.button_collect:setStyleSheet(UI.style.button_css)
+  UI.button_collect:setClickCallback("ui_collect")
 
   ------------- Deliver Button -------------------------------
-  ui_button_deliver = Geyser.Label:new(
+  UI.button_deliver = Geyser.Label:new(
     {
-      name    = "ui_button_deliver",
+      name    = "UI.button_deliver",
       --x       = "100%+214px",
       --y       = 127,
       --width   = 25,
       --height  = 20,
       message = "<center>D</center>"
     },
-    ui_hauling_button_bar
+    UI.hauling_button_bar
   )
-  ui_button_deliver:setStyleSheet(ui_style.button_css)
-  ui_button_deliver:setClickCallback("ui_deliver")
+  UI.button_deliver:setStyleSheet(UI.style.button_css)
+  UI.button_deliver:setClickCallback("ui_deliver")
  end
  
 function ui_work()
