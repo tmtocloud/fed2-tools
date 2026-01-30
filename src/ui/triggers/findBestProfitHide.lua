@@ -7,7 +7,7 @@
 --     type: regex
 
 -- If we're in profit search mode, hide command spam
-if UI.trading_data.profit_search and UI.trading_data.profit_search.active then
+if UI.trading.profit_search and UI.trading.profit_search.active then
   deleteLine()
 
   return

@@ -2,19 +2,19 @@
 --   - pattern: ^$
 --     type: regex
 
-UI.trading_data = UI.trading_data or {}
+UI.trading = UI.trading or {}
 
-if not UI.trading_data.last_line_was_price or #UI.trading_data.data == 0 then 
-  UI.trading_data.last_line_was_price = false
+if not UI.trading.last_line_was_price or #UI.trading.data == 0 then 
+  UI.trading.last_line_was_price = false
   return 
 end
 
-UI.trading_data.last_line_was_price = false
+UI.trading.last_line_was_price = false
 
 -- If we're in profit search mode, process differently
-if UI.trading_data.profit_search and UI.trading_data.profit_search.active then
+if UI.trading.profit_search and UI.trading.profit_search.active then
   ui_process_profit_search_results()
-  UI.trading_data.data = {}
+  UI.trading.data = {}
   deleteLine()
   return
 end
@@ -32,7 +32,7 @@ end
 local best_buy_price  = math.huge
 local best_sell_price = -1
 
-for _, item in ipairs(UI.trading_data.data) do
+for _, item in ipairs(UI.trading.data) do
   if item.action == "selling" then -- Station sells, we BUY
     if item.price < best_buy_price then best_buy_price = item.price end
   elseif item.action == "buying" then -- Station buys, we SELL
@@ -41,7 +41,7 @@ for _, item in ipairs(UI.trading_data.data) do
 end
 
 -- Sort by price
-table.sort(UI.trading_data.data, function(a, b)
+table.sort(UI.trading.data, function(a, b)
   return a.price < b.price
 end)
 
@@ -50,7 +50,7 @@ UI.trading_window:cecho("<white>System    Planet        Action  Qty   Price\n")
 UI.trading_window:cecho("<white>──────────────────────────────────────────\n")
 
 -- Display each entry
-for _, item in ipairs(UI.trading_data.data) do
+for _, item in ipairs(UI.trading.data) do
   -- Column A: Combined action + command
   local action_button
 
@@ -79,8 +79,8 @@ for _, item in ipairs(UI.trading_data.data) do
   local cmd = (item.action == "buying") and "sell " or "buy "
   UI.trading_window:cechoLink(
     action_button,
-    function() send(cmd .. UI.trading_data.current_commodity) end,
-    cmd .. UI.trading_data.current_commodity,
+    function() send(cmd .. UI.trading.current_commodity) end,
+    cmd .. UI.trading.current_commodity,
     true
   )
   
@@ -107,4 +107,4 @@ if best_buy_price ~= math.huge and best_sell_price ~= -1 then
   end
 end
 
-UI.trading_window:cecho("\n<white>" .. #UI.trading_data.data .. " exchanges" .. profit_message .. "\n")
+UI.trading_window:cecho("\n<white>" .. #UI.trading.data .. " exchanges" .. profit_message .. "\n")

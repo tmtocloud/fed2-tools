@@ -33,9 +33,8 @@ function ui_trading()
   UI.cartel_toggle_button:setClickCallback("ui_toggle_cartel")
 
   -- Initialize trading state
-  UI.trading_data = {
+  UI.trading = {
     selected_commodity = nil,
-    cartel             = true,
     use_cartel         = true,
     -- Initialize profit search state
     profit_search      = {
@@ -60,7 +59,7 @@ function ui_trading()
   UI.best_profit_button:setClickCallback("ui_find_best_profit")
   
   -- Check to see if user has cartel price checking
-  ui_check_cartel_status()
+  --ui_check_cartel_status()
 end
 
 -- Responsible for formatting and displaying the commodity dropdown
@@ -121,7 +120,7 @@ function ui_show_trading_drop_down()
   
     commods[i]:setClickCallback(
       function()
-        UI.trading_data.selected_commodity = item.name
+        UI.trading.selected_commodity = item.name
         UI.trading_drop_down_button:echo("<center>" .. item.name .. " ▼</center>")
         UI.commodity_popup:hide()
         UI.commodity_popup = nil
@@ -136,26 +135,26 @@ function ui_show_trading_drop_down()
 end
 
 function ui_toggle_cartel()
-  UI.trading_data.use_cartel = not UI.trading_data.use_cartel
+  UI.trading.use_cartel = not UI.trading.use_cartel
 
-  local checkbox = UI.trading_data.use_cartel and "☑" or "☐"
+  local checkbox = UI.trading.use_cartel and "☑" or "☐"
 
   UI.cartel_toggle_button:echo("<center>" .. checkbox .. " Cartel</center>")
 end
 
 function ui_check_price()
-  if not UI.trading_data.selected_commodity then
+  if not UI.trading.selected_commodity then
     cecho("\n<red>Please select a commodity first!\n")
     return
   end
 
-  local cmd = "c price " .. UI.trading_data.selected_commodity:lower()
+  local cmd = "c price " .. UI.trading.selected_commodity:lower()
 
-  if UI.trading_data.use_cartel then
-    UI.trading_data                     = UI.trading_data or {}
-    UI.trading_data.current_commodity   = UI.trading_data.selected_commodity:lower()
-    UI.trading_data.data                = {}
-    UI.trading_data.last_line_was_price = false
+  if UI.trading.use_cartel then
+    UI.trading                     = UI.trading or {}
+    UI.trading.current_commodity   = UI.trading.selected_commodity:lower()
+    UI.trading.data                = {}
+    UI.trading.last_line_was_price = false
 
     UI.trading_window:clear()
 
@@ -167,7 +166,7 @@ end
 
 function ui_find_best_profit()
   -- Clear previous results
-  UI.trading_data.profit_search = {
+  UI.trading.profit_search = {
     active                = true,
     commodities_to_search = {},
     current_index         = 1,
@@ -179,15 +178,15 @@ function ui_find_best_profit()
   
   -- Build list of all commodities
   for _, commodity in ipairs(ui_commodities()) do
-    table.insert(UI.trading_data.profit_search.commodities_to_search, commodity.name:lower())
+    table.insert(UI.trading.profit_search.commodities_to_search, commodity.name:lower())
   end
 
-  table.sort(UI.trading_data.profit_search.commodities_to_search, function(a, b) return a < b end)
+  table.sort(UI.trading.profit_search.commodities_to_search, function(a, b) return a < b end)
   
-  UI.trading_data.profit_search.total_count = #UI.trading_data.profit_search.commodities_to_search
+  UI.trading.profit_search.total_count = #UI.trading.profit_search.commodities_to_search
   
   UI.trading_window:clear()
-  UI.trading_window:cecho("<yellow>Searching " .. #UI.trading_data.profit_search.commodities_to_search .. " commodities for best profit...\n\n")
+  UI.trading_window:cecho("<yellow>Searching " .. #UI.trading.profit_search.commodities_to_search .. " commodities for best profit...\n\n")
   
    -- Create progress bar anchored to bottom of main window, between left and right frames
   if not UI.profit_progress_bar then
@@ -205,7 +204,7 @@ function ui_find_best_profit()
     UI.profit_progress_bar:setColor(40, 40, 40)
   end
   
-  UI.profit_progress_bar:setValue(1, UI.trading_data.profit_search.total_count,"Scanning commodities... 1/" .. UI.trading_data.profit_search.total_count)
+  UI.profit_progress_bar:setValue(1, UI.trading.profit_search.total_count,"Scanning commodities... 1/" .. UI.trading.profit_search.total_count)
 
   UI.profit_progress_bar:show()
   UI.profit_progress_bar:raise()
@@ -215,9 +214,9 @@ function ui_find_best_profit()
 end
 
 function ui_search_next_commodity()
-  if not UI.trading_data.profit_search.active then return end
+  if not UI.trading.profit_search.active then return end
   
-  local commodity = UI.trading_data.profit_search.commodities_to_search[UI.trading_data.profit_search.current_index]
+  local commodity = UI.trading.profit_search.commodities_to_search[UI.trading.profit_search.current_index]
   
   if not commodity then
     -- Done searching, display results
@@ -226,9 +225,9 @@ function ui_search_next_commodity()
   end
   
   -- Clear commerce data for this search
-  UI.trading_data.data = {}
-  UI.trading_data.current_commodity = commodity
-  UI.trading_data.last_line_was_price = false
+  UI.trading.data = {}
+  UI.trading.current_commodity = commodity
+  UI.trading.last_line_was_price = false
   
   -- Send the search command
   send("c price " .. commodity:lower() .. " cartel", false)
@@ -239,7 +238,7 @@ function ui_process_profit_search_results()
   local best_buy = math.huge
   local best_sell = -1
   
-  for _, item in ipairs(UI.trading_data.data) do
+  for _, item in ipairs(UI.trading.data) do
     if item.action == "selling" then
       if item.price < best_buy then best_buy = item.price end
     elseif item.action == "buying" then
@@ -249,11 +248,11 @@ function ui_process_profit_search_results()
   
   local profit = (best_buy ~= math.huge and best_sell ~= -1) and (best_sell - best_buy) or -math.huge
   
-  local commodity = UI.trading_data.current_commodity
+  local commodity = UI.trading.current_commodity
   
   -- Store result
   table.insert(
-    UI.trading_data.profit_search.results,
+    UI.trading.profit_search.results,
     {
       commodity = commodity,
       profit    = profit,
@@ -263,15 +262,15 @@ function ui_process_profit_search_results()
   )
   
   -- Update if this is the best
-  if profit > UI.trading_data.profit_search.best_profit then
-    UI.trading_data.profit_search.best_profit    = profit
-    UI.trading_data.profit_search.best_commodity = commodity
+  if profit > UI.trading.profit_search.best_profit then
+    UI.trading.profit_search.best_profit    = profit
+    UI.trading.profit_search.best_commodity = commodity
   end
   
   -- Update progress bar BEFORE incrementing current_index
   if UI.profit_progress_bar then
-    local current = UI.trading_data.profit_search.current_index
-    local total   = UI.trading_data.profit_search.total_count
+    local current = UI.trading.profit_search.current_index
+    local total   = UI.trading.profit_search.total_count
     
     UI.profit_progress_bar:setValue(current, total,"Scanning commodities... " .. current .. "/" .. total)
   end
@@ -285,31 +284,31 @@ function ui_process_profit_search_results()
   ))
   
   -- Move to next
-  UI.trading_data.profit_search.current_index = UI.trading_data.profit_search.current_index + 1
+  UI.trading.profit_search.current_index = UI.trading.profit_search.current_index + 1
   
   -- Small delay before next search to avoid flooding
   tempTimer(0.5, function() ui_search_next_commodity() end)
 end
 
 function ui_display_best_profit()
-  UI.trading_data.profit_search.active = false
+  UI.trading.profit_search.active = false
   UI.profit_progress_bar:hide()
 
   -- Sort results by profit
-  table.sort(UI.trading_data.profit_search.results, function(a, b)
+  table.sort(UI.trading.profit_search.results, function(a, b)
     return a.profit > b.profit
   end)
   
   UI.trading_window:cecho("\n<white>==========================================\n")
   UI.trading_window:cecho("<yellow>BEST PROFIT: <reset>")
   
-  if UI.trading_data.profit_search.best_commodity then
-    local best = UI.trading_data.profit_search.results[1]
+  if UI.trading.profit_search.best_commodity then
+    local best = UI.trading.profit_search.results[1]
 
     UI.trading_window:cechoLink(
       "<green><b>" .. best.commodity .. "</b><reset>",
       function()
-        UI.trading_data.selected_commodity = best.commodity
+        UI.trading.selected_commodity = best.commodity
         UI.trading_drop_down_button:echo("<center>" .. best.commodity .. " ▼</center>")
         send("c price " .. best.commodity:lower() .. " cartel")
       end,
@@ -327,7 +326,7 @@ function ui_display_best_profit()
     ))
     
     -- Auto-select it
-    UI.trading_data.selected_commodity = best.commodity
+    UI.trading.selected_commodity = best.commodity
     UI.trading_drop_down_button:echo("<center>" .. best.commodity .. " ▼</center>")
   else
     UI.trading_window:cecho("<red>No profitable commodities found<reset>\n")
@@ -337,37 +336,31 @@ function ui_display_best_profit()
   UI.trading_window:cecho("<dim_grey>Click commodity name to view full cartel prices<reset>\n")
 end
 
--- Function to check cartel status
-function ui_check_cartel_status()
-  UI.trading_data.cartel.checking = true
-  send("inventory", false)
-end
-
 -- Function to update UI based on cartel status
-function ui_updateCartelUI()
-  if UI.trading_data.cartel.active then
-    -- Show cartel-related buttons
-    UI.cartel_toggle_button:show()
-    UI.best_profit_button:show()
-    
-    -- Add tooltip with days remaining
-    local tooltip = string.format("Cartel Access Active (%d days remaining)", UI.trading_data.cartel.daysRemaining)
-    UI.cartel_toggle_button:setToolTip(tooltip)
-    UI.best_profit_button:setToolTip(tooltip)
-  else
-    -- Hide cartel-related buttons
-    UI.cartel_toggle_button:hide()
-    UI.best_profit_button:hide()
-    
-    -- Ensure cartel mode is off
-    UI.trading_data.use_cartel = false
-    
-    -- Stop any active profit search
-    if UI.trading_data.profit_search and UI.trading_data.profit_search.active then
-      UI.trading_data.profit_search.active = false
-      if UI.profit_progress_bar then
-        UI.profit_progress_bar:hide()
-      end
-    end
-  end
-end
+--function ui_updateCartelUI()
+--  if UI.trading.cartel.active then
+--    -- Show cartel-related buttons
+--    UI.cartel_toggle_button:show()
+--    UI.best_profit_button:show()
+--    
+--    -- Add tooltip with days remaining
+--    local tooltip = string.format("Cartel Access Active (%d days remaining)", UI.trading.cartel.daysRemaining)
+--    UI.cartel_toggle_button:setToolTip(tooltip)
+--    UI.best_profit_button:setToolTip(tooltip)
+--  else
+--    -- Hide cartel-related buttons
+--    UI.cartel_toggle_button:hide()
+--    UI.best_profit_button:hide()
+--    
+--    -- Ensure cartel mode is off
+--    UI.trading.use_cartel = false
+--    
+--    -- Stop any active profit search
+--    if UI.trading.profit_search and UI.trading.profit_search.active then
+--      UI.trading.profit_search.active = false
+--      if UI.profit_progress_bar then
+--        UI.profit_progress_bar:hide()
+--      end
+--    end
+--  end
+--end
