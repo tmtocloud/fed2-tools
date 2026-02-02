@@ -424,69 +424,69 @@ function ui_on_gmcp_room_info()
 end
 
 function ui_move_n()
-  send("n")
+  send("n", false)
 end
 
 function ui_move_ne()
-  send("ne")
+  send("ne", false)
 end
 
 function ui_move_e()
-  send("e")
+  send("e", false)
 end
 
 function ui_move_se()
-  send("se")
+  send("se", false)
 end
 
 function ui_move_s()
-  send("s")
+  send("s", false)
 end
 
 function ui_move_sw()
-  send("sw")
+  send("sw", false)
 end
 
 function ui_move_w()
-  send("w")
+  send("w", false)
 end
 
 function ui_move_nw()
-  send("nw")
+  send("nw", false)
 end
 
 function ui_move_up()
-  send("up")
+  send("up", false)
 end
 
 function ui_move_down()
-  send("down")
+  send("down", false)
 end
 
 function ui_move_in()
-  send("in")
+  send("in", false)
 end
 
 function ui_move_out()
-  send("out")
+  send("out", false)
 end
 
 function ui_look()
-  send("look")
+  send("look", false)
 end
 
 function ui_board()
-  send("board")
+  send("board", false)
 end
 
 function ui_buy_fuel()
-  send("buy fuel")
+  send("buy fuel", false)
 end
 
 function ui_score()
-  send("score")
+  send("score", false)
 end
 
 function ui_status()
-  send("status")
+  send("status", false)
 end
