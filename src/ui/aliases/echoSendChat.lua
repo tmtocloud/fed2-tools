@@ -1,15 +1,16 @@
 -- @patterns:
 --   - pattern: ^(?:(?i:(com|comm|say))\s+(.*)|(''|'|")\s*(.*))$
+f2t_ui_register_alias("echoSendChat")
 
 local display
 local text = ""
 
 if matches[2] ~= "" then
-  display = matches[2]:lower()
-  text = matches[3] or ""
+    display = matches[2]:lower()
+    text = matches[3] or ""
 else
-  display = "say"
-  text = matches[5] or ""
+    display = "say"
+    text = matches[5] or ""
 end
 
 send(matches[1], false)

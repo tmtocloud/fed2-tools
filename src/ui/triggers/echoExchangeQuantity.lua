@@ -1,6 +1,7 @@
 -- @patterns:
 --   - pattern: ^\+{3} Exchange has (.+) for sale \+{3}$
 --     type: regex
+f2t_ui_register_trigger("echoExchangeQuantity")
 
 --puts the amount available into exchange window
 UI.overflow_window:cecho('<ansiYellow>Available: ' .. matches[2] ..'\n')

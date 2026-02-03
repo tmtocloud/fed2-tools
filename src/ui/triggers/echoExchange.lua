@@ -3,13 +3,14 @@
 --     type: regex
 --   - pattern: ^\+{3} The display shows the prices for (.+) \+{3}$
 --     type: regex
+f2t_ui_register_trigger("echoExchange")
 
 --puts the Commodity name into the exchange window
 local commodities = ui_commodities()
 local base_price  = "???"
 
 for _, commodity in ipairs(commodities) do
-  if commodity.name == matches[2] then base_price = commodity.basePrice end
+    if commodity.name == matches[2] then base_price = commodity.basePrice end
 end
 
 UI.overflow_window:echo("+++\n")

@@ -1,9 +1,6 @@
 -- Initialize fed2-tools shared utilities
 -- This script loads first and sets up core functionality
 
--- Required since there is no current mechanic to insert into the script XML block of a component folder
-UI = UI or {}
-
 -- ========================================
 -- Persistent Settings File Path
 -- ========================================
