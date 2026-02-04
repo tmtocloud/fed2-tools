@@ -1,6 +1,5 @@
 function ui_build()
-    ui_build_frames()
-    ui_build_header()
+    ui_create_containers()
     ui_build_tabs()
     ui_build_tab_content()
     ui_build_movement()
@@ -12,4 +11,3 @@ function ui_build()
 end
 
 if F2T_UI_STATE.enabled and not ui_Built then ui_built = ui_build() end
-

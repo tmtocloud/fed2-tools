@@ -1,7 +1,51 @@
 -- Initialize UI component
 UI = UI or {}
 
-f2t_settings.ui = f2t_settings.ui or {}
+-- Register UI sizing settings with integer validators (0-100)
+
+local function integer_percent_validator(value)
+    if type(value) ~= "number" or value ~= math.floor(value) or (value < 0 or value > 100) then
+        return false, "Must be an integer between 0 and 100"
+    end
+
+    return true
+end
+
+f2t_settings_register("ui", "left_width", {
+    description = "Width of left container (% of screen width)",
+    default = 15,
+    validator = integer_percent_validator
+})
+
+f2t_settings_register("ui", "right_width", {
+    description = "Width of right container (% of screen width)",
+    default = 20,
+    validator = integer_percent_validator
+})
+
+f2t_settings_register("ui", "top_left_width", {
+    description = "Width of top-left container (% of available center space)",
+    default = 90,
+    validator = integer_percent_validator
+})
+
+f2t_settings_register("ui", "top_right_width", {
+    description = "Width of top-right container (% of available center space)",
+    default = 10,
+    validator = integer_percent_validator
+})
+
+f2t_settings_register("ui", "top_left_height", {
+    description = "Height of top-left container (% of screen height)",
+    default = 10,
+    validator = integer_percent_validator
+})
+
+f2t_settings_register("ui", "top_right_height", {
+    description = "Height of top-right container (% of screen height)",
+    default = 15,
+    validator = integer_percent_validator
+})
 
 f2t_settings_register("ui", "enabled", {
     description = "Enable/disable ui",
@@ -34,6 +78,7 @@ F2T_UI_STATE = F2T_UI_STATE or {
     -- These are PERMANENT triggers/aliases from the ui component
     triggers = {}, -- {"trigger_name_1", "trigger_name_2", ...}
     aliases  = {}, -- {"alias_name_1", "alias_name_2", ...}
+    events   = {}  -- {name = "event_name", id = event_object, ...}
 }
 
 -- Register a UI element for management
@@ -60,6 +105,10 @@ function f2t_ui_register_alias(alias_name)
     if not f2t_has_value(F2T_UI_STATE.aliases, alias_name) then
         table.insert(F2T_UI_STATE.aliases, alias_name)
     end
+end
+
+function f2t_ui_register_event(name, id)
+    F2T_UI_STATE.events[name] = id
 end
 
 -- Enable UI (show elements, enable triggers/aliases)
@@ -112,6 +161,16 @@ function f2t_ui_enable()
     for _, alias_name in ipairs(F2T_UI_STATE.aliases) do
         enableAlias(alias_name)
         f2t_debug_log("[ui] Enabled alias: %s", alias_name)
+    end
+
+    -- Enable events
+    for name, id in pairs(F2T_UI_STATE.events) do
+        if id then
+            killAnonymousEventHandler(id)
+        end
+
+        F2T_UI_STATE.events[name].id = registerAnonymousEventHandler("gmcp.char", "ui_update_header")
+        f2t_debug_log("[ui] Enabled event: %s", name)
     end
 
     -- Save state
@@ -169,6 +228,15 @@ function f2t_ui_disable()
         f2t_debug_log("[ui] Disabled alias: %s", alias_name)
     end
 
+    -- Disable events
+    for name, id in pairs(F2T_UI_STATE.events) do
+        if id then
+            killAnonymousEventHandler(id)
+        end
+
+        f2t_debug_log("[ui] Disabled event: %s", name)
+    end
+
     -- Save state
     f2t_settings_set("ui", "enabled", false)
 
@@ -192,14 +260,19 @@ end
 -- Status display
 function f2t_ui_status()
     local status = F2T_UI_STATE.enabled and "<green>ENABLED<reset>" or "<red>DISABLED<reset>"
+
     cecho(string.format("\n<cyan>[ui]<reset> Status: %s\n", status))
+
     cecho(string.format("  Labels: %d | Containers: %d | Miniconsoles: %d\n", 
         f2t_table_count_keys(F2T_UI_STATE.labels),
         f2t_table_count_keys(F2T_UI_STATE.containers),
-        f2t_table_count_keys(F2T_UI_STATE.miniconsoles)))
-    cecho(string.format("  Triggers: %d | Aliases: %d\n", 
+        f2t_table_count_keys(F2T_UI_STATE.miniconsoles))
+    )
+
+    cecho(string.format("  Triggers: %d | Aliases: %d | Events: %d\n", 
         #F2T_UI_STATE.triggers,
-        #F2T_UI_STATE.aliases))
+        #F2T_UI_STATE.aliases,
+        #F2T_UI_STATE.events))
 end
 
 -- Apply saved state on load (after UI elements are created)

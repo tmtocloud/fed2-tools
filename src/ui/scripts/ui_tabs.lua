@@ -17,6 +17,18 @@ function ui_build_tabs()
         UI.left_frame
     )
 
+    -- Build the box to split the right frame in half
+    UI.vbox_right = Geyser.VBox:new(
+        {
+            name   = "UI.vbox_right",
+            x      = 0,
+            y      = 0,
+            width  = "100%",
+            height = "100%"
+        },
+        UI.right_frame
+    )
+
     -- Place Map/Comms tabs on the top of the Right Navigation Frame (default location)
     UI.tab_top_right = Adjustable.TabWindow:new(
         {

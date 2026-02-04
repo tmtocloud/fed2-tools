@@ -4,7 +4,7 @@
 -- Navigation command with subcommands
 -- Usage: nav <destination>
 -- Usage: nav info <destination>
--- Usage: nav info <origin> <destination>
+-- Usage: nav info <origin> to <destination>
 -- Usage: nav stop/pause/resume
 
 local args = matches[2]
@@ -68,44 +68,25 @@ elseif subcommand == "info" then
     end
     
     if not info_rest or info_rest == "" then
-        cecho("\n<red>[map]<reset> Usage: nav info <destination> OR nav info <origin> <destination>\n")
+        cecho("\n<red>[map]<reset> Usage: nav info <destination>\n")
+        cecho("<red>[map]<reset>        nav info <origin> to <destination>\n")
         return
     end
     
-    -- Parse origin and destination
-    -- Support quoted strings for multi-word locations
+    -- Parse origin and destination using "to" as delimiter
     local origin, destination
     
-    -- Try: "origin" "destination"
-    local q_origin, q_dest = info_rest:match('^"([^"]+)"%s+"([^"]+)"$')
-    if q_origin and q_dest then
-        origin = q_origin
-        destination = q_dest
+    -- Check for "to" delimiter (case insensitive, with spaces around it)
+    local before_to, after_to = info_rest:match("^(.-)%s+[Tt][Oo]%s+(.+)$")
+    
+    if before_to and after_to then
+        -- Format: origin to destination
+        origin = before_to
+        destination = after_to
     else
-        -- Try: "origin" destination
-        local q_origin2, unq_dest = info_rest:match('^"([^"]+)"%s+(.+)$')
-        if q_origin2 then
-            origin = q_origin2
-            destination = unq_dest
-        else
-            -- Try: origin "destination"
-            local unq_origin, q_dest2 = info_rest:match('^(.-)%s+"([^"]+)"$')
-            if q_dest2 then
-                origin = unq_origin
-                destination = q_dest2
-            else
-                -- No quotes - check for two space-separated words
-                local word1, word2 = info_rest:match("^(%S+)%s+(.+)$")
-                if word1 and word2 then
-                    origin = word1
-                    destination = word2
-                else
-                    -- Single argument - treat as destination only
-                    origin = nil
-                    destination = info_rest
-                end
-            end
-        end
+        -- No "to" delimiter - entire string is destination
+        origin = nil
+        destination = info_rest
     end
     
     f2t_map_show_route_info(origin, destination)

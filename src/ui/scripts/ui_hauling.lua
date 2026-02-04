@@ -36,25 +36,14 @@ function stripThe(name)
     return result
 end
 
-function ui_get_distance(planet1, planet2)
-    if not UI.sol_distances then return nil end
-    local p1 = stripThe(planet1)
-    local p2 = stripThe(planet2)
-    local locs = { p1, p2 }
-    table.sort(locs)
-    local key = locs[1] .. locs[2]
-    local dist = UI.sol_distances[key]
-    return dist
-end
-
 function ui_get_route_distance(planet1, planet2)
     -- Use the map route calculation to get actual distance
     local route_info, err = f2t_map_get_route_info(planet1, planet2)
-    
+
     if not route_info or not route_info.success then
         return nil
     end
-    
+
     -- Return space_moves for GTU calculation (spaceship movements only)
     return route_info.space_moves
 end
@@ -64,15 +53,15 @@ end
 
 function ui_sort_jobs()
     if not UI.hauling_sort.column then return end
-    
+
     local col = UI.hauling_sort.column
     local asc = UI.hauling_sort.ascending
-    
+
     table.sort(UI.hauling_jobs, function(a, b)
         local valA, valB
         local jobA = tonumber(a.job_number)
         local jobB = tonumber(b.job_number)
-        
+
         if col == "job" then
             if asc then
                 return jobA < jobB
@@ -88,7 +77,7 @@ function ui_sort_jobs()
         else
             return false
         end
-        
+
         if valA < valB then
             return asc
         elseif valA > valB then
@@ -112,7 +101,7 @@ function ui_toggle_sort(column)
         UI.hauling_sort.column    = column
         UI.hauling_sort.ascending = true
     end
-    
+
     ui_display_hauling_jobs()
 end
 
@@ -122,7 +111,7 @@ end
 
 function ui_render_header()
     UI.hauling_window:cecho("<b>Available Work:</b>\n")
-    
+
     local function header_link(label, column, sortable)
         local isActive = (UI.hauling_sort.column == column)
         local color    = isActive and "<ansiGreen>" or "<white>"
@@ -138,7 +127,7 @@ function ui_render_header()
             UI.hauling_window:cecho(color .. label .. "<reset>")
         end
     end
-    
+
     header_link("Job", "job", true)
     UI.hauling_window:cecho(" ")
     header_link(rpad("Origin", 9), "origin", true)
@@ -162,7 +151,7 @@ function ui_render_job_line(job)
         true
     )
     UI.hauling_window:cecho(" ")
-    
+
     -- Origin (left-aligned, 9 chars)
     UI.hauling_window:cechoLink(
         "<ansiCyan>" .. rpad(job.origin_display, 9) .. "<reset>",
@@ -170,9 +159,9 @@ function ui_render_job_line(job)
         "Find " .. job.origin,
         true
     )
-    
+
     UI.hauling_window:cecho("> ")
-    
+
     -- Dest (left-aligned, 9 chars)
     UI.hauling_window:cechoLink(
         "<ansiCyan>" .. rpad(job.dest_display, 9) .. "<reset>",
@@ -180,11 +169,11 @@ function ui_render_job_line(job)
         "Find " .. job.dest,
         true
     )
-    
+
     -- Moves (right-aligned, total 8 chars including "gtu")
     local dist    = job.distance
     local allowed = job.allowed_moves
-    
+
     if dist then
         local dist_color
 
@@ -195,7 +184,7 @@ function ui_render_job_line(job)
         else
             dist_color = "<white>"
         end
-        
+
         local moves     = tostring(allowed) .. "/" .. tostring(dist) .. "gtu"
         local moves_pad = string.rep(" ", 8 - #moves)
         UI.hauling_window:cecho(moves_pad .. "<b>" .. allowed .. "</b>/" .. dist_color .. "<b>" .. dist .. "</b><reset>gtu")
@@ -204,13 +193,13 @@ function ui_render_job_line(job)
         local moves_pad = string.rep(" ", 8 - #moves)
         UI.hauling_window:cecho(moves_pad .. "<b>" .. allowed .. "</b>gtu")
     end
-    
+
     UI.hauling_window:cecho(" ")
-    
+
     -- Pay (right-aligned to 4 chars)
     local pay_pad = string.rep(" ", 4 - #tostring(job.base_pay))
     UI.hauling_window:cecho(pay_pad .. "<b>" .. job.base_pay .. "</b>ig")
-    
+
     -- Bonus/Penalty
     if job.pay_type == "bonus" then
         UI.hauling_window:cecho(" (<ansiGreen><b>" .. job.effective_pay .. "</b><reset>ig)")
@@ -226,17 +215,17 @@ function ui_display_hauling_jobs()
         cecho("\n<red>Error: UI.hauling_window not found!\n")
         return
     end
-    
+
     clearWindow("UI.hauling_window")
-    
+
     if #UI.hauling_jobs == 0 then
         UI.hauling_window:cecho("No hauling jobs available.\n")
         return
     end
-    
+
     ui_sort_jobs()
     ui_render_header()
-    
+
     for _, job in ipairs(UI.hauling_jobs) do
         ui_render_job_line(job)
     end
@@ -254,9 +243,9 @@ function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
     local base_pay          = tonumber(pay_per_ton) * 75
     local allowed_moves_num = tonumber(allowed_moves)
     local distance          = ui_get_route_distance(origin, dest)
-    
+
     local effective_pay, pay_type
-    
+
     if not distance then
         effective_pay = base_pay
         pay_type      = "unknown"
@@ -270,7 +259,7 @@ function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
         effective_pay = base_pay
         pay_type      = "normal"
     end
-    
+
     table.insert(UI.hauling_jobs, {
         job_number     = job_number,
         origin         = origin,
@@ -283,7 +272,7 @@ function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
         effective_pay  = effective_pay,
         pay_type       = pay_type
     })
-    
+
     ui_display_hauling_jobs()
 end
 
@@ -295,17 +284,17 @@ function ui_hauling()
     UI.button_work = Geyser.Label:new(
         {
             name    = "UI.button_work",
-            message = "<center>W</center>"
+            message = "<center>Work</center>"
         },
         UI.hauling_button_bar
     )
     UI.button_work:setStyleSheet(UI.style.button_css)
     UI.button_work:setClickCallback("ui_work")
-    
+
     UI.button_collect = Geyser.Label:new(
         {
             name    = "UI.button_collect",
-            message = "<center>C</center>"
+            message = "<center>Collect</center>"
         },
         UI.hauling_button_bar
     )
@@ -315,7 +304,7 @@ function ui_hauling()
     UI.button_deliver = Geyser.Label:new(
         {
             name    = "UI.button_deliver",
-            message = "<center>D</center>"
+            message = "<center>Deliver</center>"
         },
         UI.hauling_button_bar
     )

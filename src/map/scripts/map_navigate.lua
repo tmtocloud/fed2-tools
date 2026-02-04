@@ -4,6 +4,8 @@
 -- Navigate to a destination (room ID, hash, planet, system, or flag)
 -- Returns: true if navigation started, false if failed
 function f2t_map_navigate(destination)
+    f2t_debug_log("[map] f2t_map_navigate destination is '%s'", destination)
+    
     if not destination or destination == "" then
         cecho("\n<red>[map]<reset> No destination specified\n")
         return false

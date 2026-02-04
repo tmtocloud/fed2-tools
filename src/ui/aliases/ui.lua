@@ -21,6 +21,16 @@ elseif subcommand == "toggle" then
     f2t_ui_toggle()
 elseif subcommand == "status" then
     f2t_ui_status()
+elseif subcommand == "settings" then
+    -- ui settings [list|get|set|clear] [args]
+    local settings_args = args:match("^settings%s*(.*)") or ""
+
+    -- Check for help request
+    if f2t_handle_help("ui settings", settings_args) then
+        return
+    end
+
+    f2t_handle_settings_command("ui", settings_args)
 else
     cecho(string.format("\n<red>[ui]<reset> Unknown subcommand: %s\n", subcommand))
     f2t_show_help_hint("ui")
