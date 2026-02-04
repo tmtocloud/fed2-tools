@@ -369,9 +369,6 @@ function ui_toggle_movement_buttons()
         UI.in_out_box:hide()
         UI.button_show_hide:echo("<center>Show Buttons</center>")
         UI.button_board:hide()
-        UI.button_buy_fuel:hide()
-        UI.button_score:hide()
-        UI.button_status:hide()
         UI.movement.visible = false
     else
         UI.cardinal_box:show()
@@ -379,48 +376,7 @@ function ui_toggle_movement_buttons()
         UI.in_out_box:show()
         UI.button_show_hide:echo("<center>Hide Buttons</center>")
         UI.button_board:show()
-        UI.button_buy_fuel:show()
-        UI.button_score:show()
-        UI.button_status:show()
         UI.movement.visible = true
-    end
-end
-
-function ui_room_info_event_handler()
-    if UI.gmcp_room_handler then killAnonymousEventHandler(UI.gmcp_room_handler) end
-
-    UI.gmcp_room_handler = registerAnonymousEventHandler("gmcp.room.info", ui_on_gmcp_room_info)
-end
-
--- Run on every update to GMCP room info
-function ui_on_gmcp_room_info()
-    local exits = {}
-
-    -- get all the gmcp room exits and add them to valid exits
-    for exit, _ in pairs(gmcp.room.info.exits) do
-        table.insert(exits, exit:lower())
-    end
-
-    -- Detect shuttlepad or orbit and add board to valid exits
-    if f2t_has_value(gmcp.room.info.flags, "shuttlepad") or f2t_has_value(gmcp.room.info.flags, "orbit") or gmcp.room.info.orbit then table.insert(exits, "board") end
-
-    for dir, dirData in pairs(UI.movement.directions) do
-        if f2t_has_value(exits, dir) then
-            dirData.button:setStyleSheet(UI.style.button_css)
-            dirData.button:setClickCallback(dirData.action)
-        else
-            dirData.button:setStyleSheet(UI.style.disabled_button_css)
-            dirData.button:setClickCallback(function() end)
-        end
-    end
-
-    -- grey out buy fuel if in space
-    if f2t_has_value(gmcp.room.info.flags, "space") then
-        UI.button_buy_fuel:setStyleSheet(UI.style.disabled_button_css)
-        UI.button_buy_fuel:setClickCallback(function() end)
-    else
-        UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
-        UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
     end
 end
 
@@ -478,16 +434,4 @@ end
 
 function ui_board()
     send("board", false)
-end
-
-function ui_buy_fuel()
-    send("buy fuel", false)
-end
-
-function ui_score()
-    send("score", false)
-end
-
-function ui_status()
-    send("status", false)
 end

@@ -107,8 +107,18 @@ function f2t_ui_register_alias(alias_name)
     end
 end
 
-function f2t_ui_register_event(name, id)
-    F2T_UI_STATE.events[name] = id
+-- Registers an event with mudlet and also stores it in a UI registry for enable/disable
+function f2t_ui_register_event(trigger, action)
+    assert(type(action) == "string", "action function must be given in string form")
+
+    F2T_UI_STATE.events[action] = {}
+    F2T_UI_STATE.events[action].trigger = trigger
+
+    if F2T_UI_STATE.events[action].id then
+        killAnonymousEventHandler(F2T_UI_STATE.events[action].id)
+    end
+
+    F2T_UI_STATE.events[action].id = registerAnonymousEventHandler(trigger, action)
 end
 
 -- Enable UI (show elements, enable triggers/aliases)
@@ -123,16 +133,6 @@ function f2t_ui_enable()
     -- If the UI was never built, then build it 
     if not ui_Built then ui_built = ui_build() end
 
-    -- Show all UI elements
-    for name, label in pairs(F2T_UI_STATE.labels) do
-        if label.show then
-            label:show()
-        elseif showWindow then
-            showWindow(name)
-        end
-        f2t_debug_log("[ui] Showing label: %s", name)
-    end
-
     for name, container in pairs(F2T_UI_STATE.containers) do
         if container.show then
             container:show()
@@ -140,15 +140,6 @@ function f2t_ui_enable()
             showWindow(name)
         end
         f2t_debug_log("[ui] Showing container: %s", name)
-    end
-
-    for name, console in pairs(F2T_UI_STATE.miniconsoles) do
-        if console.show then
-            console:show()
-        elseif showWindow then
-            showWindow(name)
-        end
-        f2t_debug_log("[ui] Showing miniconsole: %s", name)
     end
 
     -- Enable triggers
@@ -164,13 +155,13 @@ function f2t_ui_enable()
     end
 
     -- Enable events
-    for name, id in pairs(F2T_UI_STATE.events) do
-        if id then
-            killAnonymousEventHandler(id)
+    for action, data in pairs(F2T_UI_STATE.events) do
+        if data.id then
+            killAnonymousEventHandler(data.id)
         end
 
-        F2T_UI_STATE.events[name].id = registerAnonymousEventHandler("gmcp.char", "ui_update_header")
-        f2t_debug_log("[ui] Enabled event: %s", name)
+        F2T_UI_STATE.events[action].id = registerAnonymousEventHandler(data.trigger, action)
+        f2t_debug_log("[ui] Enabled event with trigger: %s and action: %s", data.trigger, action)
     end
 
     -- Save state
@@ -189,15 +180,6 @@ function f2t_ui_disable()
     F2T_UI_STATE.enabled = false
 
     -- Hide all UI elements (don't destroy them!)
-    for name, label in pairs(F2T_UI_STATE.labels) do
-        if label.hide then
-            label:hide()
-        elseif hideWindow then
-            hideWindow(name)
-        end
-        f2t_debug_log("[ui] Hiding label: %s", name)
-    end
-
     for name, container in pairs(F2T_UI_STATE.containers) do
         if container.hide then
             container:hide()
@@ -205,15 +187,6 @@ function f2t_ui_disable()
             hideWindow(name)
         end
         f2t_debug_log("[ui] Hiding container: %s", name)
-    end
-
-    for name, console in pairs(F2T_UI_STATE.miniconsoles) do
-        if console.hide then
-            console:hide()
-        elseif hideWindow then
-            hideWindow(name)
-        end
-        f2t_debug_log("[ui] Hiding miniconsole: %s", name)
     end
 
     -- Disable triggers
@@ -229,12 +202,12 @@ function f2t_ui_disable()
     end
 
     -- Disable events
-    for name, id in pairs(F2T_UI_STATE.events) do
-        if id then
-            killAnonymousEventHandler(id)
+    for action, data in pairs(F2T_UI_STATE.events) do
+        if data.id then
+            killAnonymousEventHandler(data.id)
         end
 
-        f2t_debug_log("[ui] Disabled event: %s", name)
+        f2t_debug_log("[ui] Disabled event with trigger: %s and action: %s", data.trigger, action)
     end
 
     -- Save state
@@ -252,21 +225,13 @@ function f2t_ui_toggle()
     end
 end
 
--- Check if UI is enabled
-function f2t_ui_is_enabled()
-    return F2T_UI_STATE.enabled
-end
-
 -- Status display
 function f2t_ui_status()
     local status = F2T_UI_STATE.enabled and "<green>ENABLED<reset>" or "<red>DISABLED<reset>"
 
     cecho(string.format("\n<cyan>[ui]<reset> Status: %s\n", status))
 
-    cecho(string.format("  Labels: %d | Containers: %d | Miniconsoles: %d\n", 
-        f2t_table_count_keys(F2T_UI_STATE.labels),
-        f2t_table_count_keys(F2T_UI_STATE.containers),
-        f2t_table_count_keys(F2T_UI_STATE.miniconsoles))
+    cecho(string.format("  Containers: %d\n", f2t_table_count_keys(F2T_UI_STATE.containers))
     )
 
     cecho(string.format("  Triggers: %d | Aliases: %d | Events: %d\n", 

@@ -51,3 +51,15 @@ function ui_build_quick_buttons()
     UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
     UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
 end
+
+function ui_score()
+    send("score", false)
+end
+
+function ui_status()
+    send("status", false)
+end
+
+function ui_buy_fuel()
+    send("buy fuel", false)
+end

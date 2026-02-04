@@ -66,29 +66,6 @@ function ui_build_tabs()
     )
 end
 
-function ui_update_tabs_for_rank()
-    local rank = (gmcp.char and gmcp.char.vitals and gmcp.char.vitals.rank) or {}
-    local rank_level = UI.ranks[rank] or 0
-
-    -- Hauling: only rank 1+
-    if rank_level < 1 then
-        UI.tab_bottom_right:removeTab("Hauling")
-    else
-        if not f2t_has_value(UI.tab_bottom_right.tabs, "Hauling") then
-            UI.tab_bottom_right:addTab("Hauling", 2)
-        end
-    end
-
-    -- Trading: only rank 4+
-    if rank_level < 4 then
-        UI.tab_bottom_right:removeTab("Trading")
-    else
-        if not f2t_has_value(UI.tab_bottom_right.tabs, "Trading") then
-            UI.tab_bottom_right:addTab("Trading", 3)
-        end
-    end
-end
-
 -- populate our various tabs
 function ui_build_tab_content()
     local text_size = 12

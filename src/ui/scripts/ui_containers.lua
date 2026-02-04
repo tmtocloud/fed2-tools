@@ -56,6 +56,7 @@ function ui_create_containers()
         adjLabelstyle = UI.style.frame_css,
         attached      = "left"
     })
+    f2t_ui_register_container("UI.left_frame", UI.left_frame)
 
     -- Create Right Container (attached to right border)
     UI.right_frame = Adjustable.Container:new({
@@ -69,6 +70,7 @@ function ui_create_containers()
         adjLabelstyle = UI.style.frame_css,
         attached      = "right"
     })
+    f2t_ui_register_container("UI.right_frame", UI.right_frame)
 
     -- Create Top Left Container (attached to top and left borders)
     UI.top_left_frame = Adjustable.Container:new({
@@ -82,6 +84,7 @@ function ui_create_containers()
         adjLabelstyle = UI.style.frame_css,
         attached      = "top"
     })
+    f2t_ui_register_container("UI.top_left_frame", UI.top_left_frame)
 
     -- Create Top Right Container (attached to top and right borders)
     UI.top_right_frame = Adjustable.Container:new({
@@ -95,15 +98,11 @@ function ui_create_containers()
         adjLabelstyle = UI.style.frame_css,
         attached      = "top"
     })
+    f2t_ui_register_container("UI.top_right_frame", UI.top_right_frame)
     
     -- Capture initial state
     tempTimer(0.1, ui_capture_state)
     tempTimer(0.1, ui_on_window_resize)
-
-    if F2T_UI_STATE.enabled then
-        f2t_ui_register_event("ui_on_container_reposition",registerAnonymousEventHandler("AdjustableContainerRepositionFinish", ui_on_container_reposition))
-        f2t_ui_register_event("ui_on_window_resize",registerAnonymousEventHandler("sysWindowResizeEvent", ui_on_window_resize))
-    end
 
     -- Enable Adjustable Containers (Tabs), users can move tabs from default starting positions as they wish
     Adjustable.Container:doAll(function(self) self:addConnectMenu() end)
