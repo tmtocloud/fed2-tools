@@ -279,54 +279,6 @@ function ui_build_movement()
     UI.button_show_hide:setStyleSheet(UI.style.toggle_button_css)
     UI.button_show_hide:setClickCallback("ui_toggle_movement_buttons")
 
-    ------------- Buy Fuel Button ------------------------------
-    UI.button_buy_fuel = Geyser.Label:new(
-        {
-            name    = "UI.button_buy_fuel",
-            x       = "100%+85px",
-            y       = 127,
-            width   = 55,
-            height  = 18,
-            message = "<center>Buy Fuel</center>"
-        },
-        UI.map_commands_container
-    )
-
-    UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
-    UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
-    
- ------------- Score Button -------------------------------
-    UI.button_score = Geyser.Label:new(
-        {
-            name    = "UI.button_score",
-            x       = "100%+173px",
-            y       = 100,
-            width   = 25,
-            height  = 20,
-            message = "<center>SC</center>"
-        },
-        UI.map_commands_container
-    )
-
-    UI.button_score:setStyleSheet(UI.style.button_css)
-    UI.button_score:setClickCallback("ui_score")
-
-    ------------- Status Button -------------------------------
-    UI.button_status = Geyser.Label:new(
-        {
-            name    = "UI.button_status",
-            x       = "100%+200px",
-            y       = 100,
-            width   = 25,
-            height  = 20,
-            message = "<center>ST</center>"
-        },
-        UI.map_commands_container
-    )
-
-    UI.button_status:setStyleSheet(UI.style.button_css)
-    UI.button_status:setClickCallback("ui_status")
-
     -------------- Board Button --------------------------------
     UI.button_board = Geyser.Label:new(
         {

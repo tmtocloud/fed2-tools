@@ -19,6 +19,18 @@ UI.style.label_css = [[
     border-color: white;
 ]]
 
+UI.style.header_label_css = [[
+    background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #2a2a3a,
+        stop:0.4 #1e1e2a,
+        stop:1 #16161e);
+    color: #c8c8d0;
+    border: none;
+    border-right: 1px solid #3a3a4a;
+    padding: 4px 8px;
+    font-family: "Consolas", "Monaco", monospace;
+]]
+
 -- Styling for tabs
 --future?: some method to set text size on tabs
 UI.style.active_tab_text    = "white"     --active tab text color

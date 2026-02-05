@@ -160,7 +160,7 @@ function ui_render_job_line(job)
         true
     )
 
-    UI.hauling_window:cecho("> ")
+    UI.hauling_window:cecho(" > ")
 
     -- Dest (left-aligned, 9 chars)
     UI.hauling_window:cechoLink(

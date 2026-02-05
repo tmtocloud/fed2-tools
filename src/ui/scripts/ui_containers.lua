@@ -33,16 +33,16 @@ end
 function ui_create_containers()
     local screen_width, screen_height = getMainWindowSize()
     
-    local left_width             = ui_pct_to_pixels_width(f2t_settings_get("ui", "left_width"))
-    local right_width            = ui_pct_to_pixels_width(f2t_settings_get("ui", "right_width"))
+    local left_width             = ui_pct_to_pixels_width(20)
+    local right_width            = ui_pct_to_pixels_width(20)
     local available_center_width = screen_width - left_width - right_width
     
     -- Top container widths are percentage of the available center space
-    local top_left_width  = math.floor(available_center_width * (f2t_settings_get("ui", "top_left_width")  / 100))
-    local top_right_width = math.floor(available_center_width * (f2t_settings_get("ui", "top_right_width") / 100))
+    local top_left_width  = math.floor(available_center_width * 0.93)
+    local top_right_width = available_center_width - top_left_width
     
-    local top_left_height  = ui_pct_to_pixels_height(f2t_settings_get("ui", "top_left_height"))
-    local top_right_height = ui_pct_to_pixels_height(f2t_settings_get("ui", "top_right_height"))
+    local top_left_height  = ui_pct_to_pixels_height(5)
+    local top_right_height = ui_pct_to_pixels_height(7)
     
     -- Create Left Container (attached to left border)
     UI.left_frame = Adjustable.Container:new({
@@ -51,12 +51,15 @@ function ui_create_containers()
         y             = 0,
         width         = left_width,
         height        = screen_height,
-        locked        = true,
         lockStyle     = "border",
         adjLabelstyle = UI.style.frame_css,
-        attached      = "left"
+        attached      = "left",
+        autoSave      = false,
+        autoLoad      = false
     })
-    f2t_ui_register_container("UI.left_frame", UI.left_frame)
+    UI.left_frame:setAbsolute(true, true)
+    UI.left_frame:connectToBorder("left")
+    UI.left_frame:lockContainer("border")
 
     -- Create Right Container (attached to right border)
     UI.right_frame = Adjustable.Container:new({
@@ -65,12 +68,16 @@ function ui_create_containers()
         y             = 0,
         width         = right_width,
         height        = screen_height,
-        locked        = true,
         lockStyle     = "border",
         adjLabelstyle = UI.style.frame_css,
-        attached      = "right"
+        attached      = "right",
+        autoSave      = false,
+        autoLoad      = false
     })
-    f2t_ui_register_container("UI.right_frame", UI.right_frame)
+    UI.right_frame:setAbsolute(true, true)
+    UI.right_frame:connectToBorder("right")
+    UI.right_frame:lockContainer("border")
+
 
     -- Create Top Left Container (attached to top and left borders)
     UI.top_left_frame = Adjustable.Container:new({
@@ -79,27 +86,32 @@ function ui_create_containers()
         y             = 0,
         width         = top_left_width,
         height        = top_left_height,
-        locked        = true,
         lockStyle     = "border",
         adjLabelstyle = UI.style.frame_css,
-        attached      = "top"
+        attached      = "top",
+        autoSave      = false,
+        autoLoad      = false
     })
-    f2t_ui_register_container("UI.top_left_frame", UI.top_left_frame)
+    UI.top_left_frame:setAbsolute(true, true)
+    UI.top_left_frame:lockContainer("border")
 
     -- Create Top Right Container (attached to top and right borders)
     UI.top_right_frame = Adjustable.Container:new({
         name          = "UI.top_right_frame",
-        x             = screen_width - right_width - top_right_width,
+        x             = left_width + top_left_width,
         y             = 0,
         width         = top_right_width,
         height        = top_right_height,
-        locked        = true,
         lockStyle     = "border",
         adjLabelstyle = UI.style.frame_css,
-        attached      = "top"
+        attached      = "top",
+        noLimit       = false,
+        autoSave      = false,
+        autoLoad      = false
     })
-    f2t_ui_register_container("UI.top_right_frame", UI.top_right_frame)
-    
+    UI.top_right_frame:setAbsolute(true, true)
+    UI.top_right_frame:lockContainer("border")
+
     -- Capture initial state
     tempTimer(0.1, ui_capture_state)
     tempTimer(0.1, ui_on_window_resize)
@@ -113,7 +125,7 @@ function ui_on_container_reposition(event, container_name)
     if not container_name then return end
     
     local screen_width, screen_height = getMainWindowSize()
-    local min_pixels = ui_pct_to_pixels_width(5)
+    local min_pixels = ui_pct_to_pixels_width(2)
     
     local left_width      = UI.left_frame:get_width()
     local right_width     = UI.right_frame:get_width()
@@ -218,7 +230,7 @@ end
 -- Handle window resize
 function ui_on_window_resize()
     local screen_width, screen_height = getMainWindowSize()
-    local min_pixels = ui_pct_to_pixels_width(5)
+    local min_pixels = ui_pct_to_pixels_width(2)
     
     local left_width      = UI.left_frame:get_width()
     local right_width     = UI.right_frame:get_width()

@@ -28,11 +28,3 @@ function ui_cargo()
         UI.cargo_window:echo("\n")
     end
 end
-
--- Register the GMCP event handler
-if F2T_CARGO_HANDLER_ID then
-    killAnonymousEventHandler(F2T_CARGO_HANDLER_ID)
-end
-F2T_CARGO_HANDLER_ID = registerAnonymousEventHandler("gmcp.char.ship.cargo", "ui_cargo")
-
-f2t_debug_log("[ui] GMCP Cargo handler registered")

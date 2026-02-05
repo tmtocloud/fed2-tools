@@ -1,52 +1,6 @@
 -- Initialize UI component
 UI = UI or {}
 
--- Register UI sizing settings with integer validators (0-100)
-
-local function integer_percent_validator(value)
-    if type(value) ~= "number" or value ~= math.floor(value) or (value < 0 or value > 100) then
-        return false, "Must be an integer between 0 and 100"
-    end
-
-    return true
-end
-
-f2t_settings_register("ui", "left_width", {
-    description = "Width of left container (% of screen width)",
-    default = 15,
-    validator = integer_percent_validator
-})
-
-f2t_settings_register("ui", "right_width", {
-    description = "Width of right container (% of screen width)",
-    default = 20,
-    validator = integer_percent_validator
-})
-
-f2t_settings_register("ui", "top_left_width", {
-    description = "Width of top-left container (% of available center space)",
-    default = 90,
-    validator = integer_percent_validator
-})
-
-f2t_settings_register("ui", "top_right_width", {
-    description = "Width of top-right container (% of available center space)",
-    default = 10,
-    validator = integer_percent_validator
-})
-
-f2t_settings_register("ui", "top_left_height", {
-    description = "Height of top-left container (% of screen height)",
-    default = 10,
-    validator = integer_percent_validator
-})
-
-f2t_settings_register("ui", "top_right_height", {
-    description = "Height of top-right container (% of screen height)",
-    default = 15,
-    validator = integer_percent_validator
-})
-
 f2t_settings_register("ui", "enabled", {
     description = "Enable/disable ui",
     default = true,
@@ -70,9 +24,7 @@ F2T_UI_STATE = F2T_UI_STATE or {
     enabled = true,
 
     -- Track created UI elements (populate during creation)
-    labels       = {}, -- {name = label_object, ...}
     containers   = {}, -- {name = container_object, ...}
-    miniconsoles = {}, -- {name = console_object, ...}
 
     -- Track trigger/alias names to toggle (strings, not IDs)
     -- These are PERMANENT triggers/aliases from the ui component
@@ -81,17 +33,8 @@ F2T_UI_STATE = F2T_UI_STATE or {
     events   = {}  -- {name = "event_name", id = event_object, ...}
 }
 
--- Register a UI element for management
-function f2t_ui_register_label(name, label_object)
-    F2T_UI_STATE.labels[name] = label_object
-end
-
 function f2t_ui_register_container(name, container_object)
     F2T_UI_STATE.containers[name] = container_object
-end
-
-function f2t_ui_register_miniconsole(name, console_object)
-    F2T_UI_STATE.miniconsoles[name] = console_object
 end
 
 -- Register triggers/aliases that should be toggled with UI
@@ -121,7 +64,7 @@ function f2t_ui_register_event(trigger, action)
     F2T_UI_STATE.events[action].id = registerAnonymousEventHandler(trigger, action)
 end
 
--- Enable UI (show elements, enable triggers/aliases)
+-- Enable UI (show elements, enable triggers/aliases/events)
 function f2t_ui_enable()
     if F2T_UI_STATE.enabled then
         f2t_debug_log("[ui] UI already enabled")
@@ -131,8 +74,9 @@ function f2t_ui_enable()
     F2T_UI_STATE.enabled = true
 
     -- If the UI was never built, then build it 
-    if not ui_Built then ui_built = ui_build() end
+    if not ui_built then ui_built = ui_build() end
 
+    -- Enable UI
     for name, container in pairs(F2T_UI_STATE.containers) do
         if container.show then
             container:show()
@@ -170,7 +114,7 @@ function f2t_ui_enable()
     cecho("\n<green>[ui]<reset> UI enabled\n")
 end
 
--- Disable UI (hide elements, disable triggers/aliases)
+-- Disable UI (hide elements, disable triggers/aliases/events)
 function f2t_ui_disable()
     if not F2T_UI_STATE.enabled then
         f2t_debug_log("[ui] UI already disabled")
@@ -214,15 +158,6 @@ function f2t_ui_disable()
     f2t_settings_set("ui", "enabled", false)
 
     cecho("\n<yellow>[ui]<reset> UI disabled\n")
-end
-
--- Toggle UI state
-function f2t_ui_toggle()
-    if F2T_UI_STATE.enabled then
-        f2t_ui_disable()
-    else
-        f2t_ui_enable()
-    end
 end
 
 -- Status display
