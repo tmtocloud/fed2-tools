@@ -60,6 +60,7 @@ function ui_create_containers()
     UI.left_frame:setAbsolute(true, true)
     UI.left_frame:connectToBorder("left")
     UI.left_frame:lockContainer("border")
+    f2t_ui_register_container("UI.left_frame", UI.left_frame)
 
     -- Create Right Container (attached to right border)
     UI.right_frame = Adjustable.Container:new({
@@ -77,7 +78,7 @@ function ui_create_containers()
     UI.right_frame:setAbsolute(true, true)
     UI.right_frame:connectToBorder("right")
     UI.right_frame:lockContainer("border")
-
+    f2t_ui_register_container("UI.right_frame", UI.right_frame)
 
     -- Create Top Left Container (attached to top and left borders)
     UI.top_left_frame = Adjustable.Container:new({
@@ -94,6 +95,7 @@ function ui_create_containers()
     })
     UI.top_left_frame:setAbsolute(true, true)
     UI.top_left_frame:lockContainer("border")
+    f2t_ui_register_container("UI.top_left_frame", UI.top_left_frame)
 
     -- Create Top Right Container (attached to top and right borders)
     UI.top_right_frame = Adjustable.Container:new({
@@ -111,6 +113,7 @@ function ui_create_containers()
     })
     UI.top_right_frame:setAbsolute(true, true)
     UI.top_right_frame:lockContainer("border")
+    f2t_ui_register_container("UI.top_right_frame", UI.top_right_frame)
 
     -- Capture initial state
     tempTimer(0.1, ui_capture_state)

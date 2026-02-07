@@ -65,12 +65,12 @@ function ui_build()
     ui_trading()
     ui_commodities()
     ui_update_for_rank()
+    ui_update_header()
+
+    f2t_debug_log("[ui] ui_build finished")
 end
 
--- If UI is enabled, kick everything off
-if F2T_UI_STATE.enabled then
-    if not ui_Built then ui_built = ui_build() end
-
+function ui_event_register()
     f2t_ui_register_event("AdjustableContainerRepositionFinish", "ui_on_container_reposition")
     f2t_ui_register_event("sysWindowResizeEvent"               , "ui_on_window_resize")
     f2t_ui_register_event("gmcp.char"                          , "ui_update_header")
@@ -81,4 +81,16 @@ if F2T_UI_STATE.enabled then
     f2t_ui_register_event("gmcp.comm.say"                      , "ui_echo_say")
 
     f2t_debug_log("[ui] event handlers registered")
+end
+
+-- If UI is enabled, kick everything off
+if F2T_UI_STATE.enabled then
+    if not ui_built then 
+        ui_build()
+        ui_built = true
+    end
+    if not ui_evented then 
+        ui_event_register()
+        ui_evented = true
+    end
 end

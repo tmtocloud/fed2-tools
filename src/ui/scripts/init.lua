@@ -21,7 +21,7 @@ end
 -- UI Manager: Central control for showing/hiding UI and enabling/disabling triggers
 -- Following the persistent state pattern from shared/CLAUDE.md
 F2T_UI_STATE = F2T_UI_STATE or {
-    enabled = true,
+    enabled = saved_enabled,
 
     -- Track created UI elements (populate during creation)
     containers   = {}, -- {name = container_object, ...}
@@ -52,7 +52,7 @@ end
 
 -- Registers an event with mudlet and also stores it in a UI registry for enable/disable
 function f2t_ui_register_event(trigger, action)
-    f2t_debug_log("registering event with trigger: %s and action: %s action is type: %s", trigger, actions, type(action))
+    f2t_debug_log("registering event with trigger: %s and action: %s action is type: %s", trigger, action, type(action))
 
     if type(action) ~= "string" then error("action function must be given in string form") end
 
@@ -68,6 +68,8 @@ end
 
 -- Enable UI (show elements, enable triggers/aliases/events)
 function f2t_ui_enable()
+    f2t_debug_log("[ui] f2t_ui_enable CALLED")
+
     if F2T_UI_STATE.enabled then
         f2t_debug_log("[ui] UI already enabled")
         return
@@ -75,16 +77,21 @@ function f2t_ui_enable()
 
     F2T_UI_STATE.enabled = true
 
-    -- If the UI was never built, then build it 
-    if not ui_built then ui_built = ui_build() end
+    -- If we never ran the usual initial startup, then do that
+    if not ui_built then 
+        ui_build()
+        ui_built = true
+    end
+    if not ui_evented then 
+        ui_event_register()
+        ui_evented = true
+    end
 
+    -- If there were any previously-registered elements, just enable them, the above probably wont have run
     -- Enable UI
     for name, container in pairs(F2T_UI_STATE.containers) do
-        if container.show then
-            container:show()
-        elseif showWindow then
-            showWindow(name)
-        end
+        container:show()
+
         f2t_debug_log("[ui] Showing container: %s", name)
     end
 
@@ -127,11 +134,8 @@ function f2t_ui_disable()
 
     -- Hide all UI elements (don't destroy them!)
     for name, container in pairs(F2T_UI_STATE.containers) do
-        if container.hide then
-            container:hide()
-        elseif hideWindow then
-            hideWindow(name)
-        end
+        container:hide()
+        
         f2t_debug_log("[ui] Hiding container: %s", name)
     end
 
@@ -171,17 +175,10 @@ function f2t_ui_status()
     cecho(string.format("  Containers: %d\n", f2t_table_count_keys(F2T_UI_STATE.containers)))
 
     cecho(string.format("  Triggers: %d | Aliases: %d | Events: %d\n", 
-        #F2T_UI_STATE.triggers,
-        #F2T_UI_STATE.aliases,
-        #F2T_UI_STATE.events
+        f2t_table_count_keys(F2T_UI_STATE.triggers),
+        f2t_table_count_keys(F2T_UI_STATE.aliases),
+        f2t_table_count_keys(F2T_UI_STATE.events)
     ))
 end
-
--- Apply saved state on load (after UI elements are created)
-tempTimer(0.5, function()
-    if not saved_enabled then
-        f2t_ui_disable()
-    end
-end)
 
 f2t_debug_log("[ui] Component initialized, enabled=%s", tostring(saved_enabled))
