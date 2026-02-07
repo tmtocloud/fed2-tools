@@ -24,7 +24,7 @@ function ui_build_quick_buttons()
     UI.button_status = Geyser.Label:new(
         {
             name    = "UI.button_status",
-            x       = button_width + button_gap + 5,
+            x       = 5 + button_width + button_gap,
             y       = 5,
             width   = button_width,
             height  = button_height,
@@ -41,7 +41,7 @@ function ui_build_quick_buttons()
         {
             name    = "UI.button_buy_fuel",
             x       = 5,
-            y       = button_height + button_gap + 5,
+            y       = 5 + button_height + button_gap,
             width   = (button_width * 2) + button_gap,
             height  = button_height,
             message = "<center>Buy Fuel</center>"
@@ -52,14 +52,14 @@ function ui_build_quick_buttons()
     UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
 end
 
+function ui_buy_fuel()
+  send("buy fuel", false)
+end
+
 function ui_score()
-    send("score", false)
+  send("score", false)
 end
 
 function ui_status()
-    send("status", false)
-end
-
-function ui_buy_fuel()
-    send("buy fuel", false)
+  send("status", false)
 end

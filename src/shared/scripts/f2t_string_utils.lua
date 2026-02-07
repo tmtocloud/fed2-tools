@@ -28,3 +28,40 @@ function f2t_clean_room_name(name)
 
     return cleaned
 end
+
+function rpad(str, len)
+    str = tostring(str)
+    if #str > len then
+        return str:sub(1, len)
+    end
+    return str .. string.rep(" ", len - #str)
+end
+
+function lpad(str, len)
+    str = tostring(str)
+    if #str > len then
+        return str:sub(1, len)
+    end
+    
+end
+
+function f2t_padding(str, len, dir)
+    str = tostring(str)
+
+    -- If the string is longer than the length, truncate characters without doing anything
+    if #str > len then
+        return str:sub(1, len)
+    end
+
+    if dir == "left" then
+        return str .. string.rep(" ", len - #str)
+    elseif dir == "right" then
+        return string.rep(" ", len - #str) .. str
+    elseif dir == "center" then
+        local total_padding = len - #str
+        local left_padding  = math.floor(total_padding / 2)
+        local right_padding = total_padding - left_padding
+
+        return string.rep(" ", left_padding) .. str .. string.rep(" ", right_padding)
+    end
+end

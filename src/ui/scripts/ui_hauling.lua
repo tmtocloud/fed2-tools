@@ -1,234 +1,137 @@
 -- =============================================================================
--- UI Hauling Script - Federation 2 Mudlet Package
+-- Hauling Jobs - Using UI Table System
 -- =============================================================================
 
--- =============================================================================
--- INITIALIZATION
--- =============================================================================
-
-UI = UI or {}
-UI.hauling_jobs = {}
-UI.hauling_sort = { column = nil, ascending = true }
-
--- =============================================================================
--- HELPER FUNCTIONS
--- =============================================================================
-
-function rpad(str, len)
-    str = tostring(str)
-    if #str > len then
-        return str:sub(1, len)
-    end
-    return str .. string.rep(" ", len - #str)
-end
-
-function lpad(str, len)
-    str = tostring(str)
-    if #str > len then
-        return str:sub(1, len)
-    end
-    return string.rep(" ", len - #str) .. str
-end
-
+-- Helper function
 function stripThe(name)
     if not name then return "" end
     local result = string.gsub(name, "^The ", "")
     return result
 end
 
-function ui_get_route_distance(planet1, planet2)
-    -- Use the map route calculation to get actual distance
-    local route_info, err = f2t_map_get_route_info(planet1, planet2)
-
-    if not route_info or not route_info.success then
-        return nil
-    end
-
-    -- Return space_moves for GTU calculation (spaceship movements only)
-    return route_info.space_moves
-end
 -- =============================================================================
--- SORTING
+-- INITIALIZE HAULING TABLE
 -- =============================================================================
 
-function ui_sort_jobs()
-    if not UI.hauling_sort.column then return end
-
-    local col = UI.hauling_sort.column
-    local asc = UI.hauling_sort.ascending
-
-    table.sort(UI.hauling_jobs, function(a, b)
-        local valA, valB
-        local jobA = tonumber(a.job_number)
-        local jobB = tonumber(b.job_number)
-
-        if col == "job" then
-            if asc then
-                return jobA < jobB
-            else
-                return jobA > jobB
+function ui_hauling_init()
+    -- Define columns for hauling jobs
+    local hauling_columns = {
+        {
+            key = "job_number",
+            label = "Job",
+            width = 4,
+            align = "center",
+            header_align = "center",
+            sortable = true,
+            format = function(value) return "<blue><u>" .. value .. "</u><reset>" end,
+            link = function(value) send("ac " .. value) end,
+            linkHint = "Accept job %s",
+            sort_value = function(row)
+                return tonumber(row.job_number)
             end
-        elseif col == "origin" then
-            valA, valB = a.origin:lower(), b.origin:lower()
-        elseif col == "dest" then
-            valA, valB = a.dest:lower(), b.dest:lower()
-        elseif col == "pay" then
-            valA, valB = a.effective_pay, b.effective_pay
-        else
-            return false
-        end
+        },
+        {
+            key = "origin_display",
+            label = "Origin",
+            width = 10,
+            align = "left",
+            header_align = "center",
+            sortable = true,
+            separator = " > ",        -- Arrow separator between origin and dest in DATA
+            header_separator = "   ",
+            format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+            link = function(value, row) 
+                send("whereis " .. row.origin, false)
+                expandAlias("nav " .. row.origin)
+            end,
+            linkHint = "Go to %s",
+            sort_value = function(row)
+                return row.origin:lower()
+            end
+        },
+        {
+            key = "dest_display",
+            label = "Dest",
+            width = 10,
+            align = "left",
+            header_align = "center",
+            sortable = true,
+            format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+            link = function(value, row)
+                send("whereis " .. row.dest, false)
+                expandAlias("nav " .. row.dest)
+            end,
+            linkHint = "Go to %s",
+            sort_value = function(row)
+                return row.dest:lower()
+            end
+        },
+        {
+            key = "moves",
+            label = "GTU",
+            width = 4,
+            align = "center",
+            header_align = "center",
+            sortable = false,
+            format = function(value, row)
+                local dist = row.distance
+                local allowed = row.allowed_moves
 
-        if valA < valB then
-            return asc
-        elseif valA > valB then
-            return not asc
-        else
-            return jobA < jobB
-        end
-    end)
-end
+                if dist then
+                    local dist_color
 
-function ui_toggle_sort(column)
-    if column == "pay" then
-        if UI.hauling_sort.column == "pay" then
-            return
-        end
-        UI.hauling_sort.column    = "pay"
-        UI.hauling_sort.ascending = false
-    elseif UI.hauling_sort.column == column then
-        UI.hauling_sort.ascending = not UI.hauling_sort.ascending
-    else
-        UI.hauling_sort.column    = column
-        UI.hauling_sort.ascending = true
-    end
+                    if dist < allowed then
+                        dist_color = "<ansiGreen>"
+                    elseif dist > allowed then
+                        dist_color = "<ansiRed>"
+                    else
+                        dist_color = "<white>"
+                    end
 
-    ui_display_hauling_jobs()
-end
+                    return "<b>" .. allowed .. "</b>/" .. dist_color .. "<b>" .. dist .. "</b><reset>"
+                else
+                    return "<b>" .. allowed .. "</b>"
+                end
+            end
+        },
+        {
+            key = "pay",
+            label = "Pay",
+            width = 13,
+            align = "left",
+            header_align = "center",
+            sortable = true,
+            default_sort = "desc",
+            allowed_sort = "desc",
+            format = function(value, row)
+                local base_text = tostring(row.base_pay) .. "ig"
 
--- =============================================================================
--- RENDERING
--- =============================================================================
+                local pay_color
+                if row.pay_type == "bonus" then
+                    pay_color = "<ansiGreen>"
+                elseif row.pay_type == "penalty" then
+                    pay_color = "<ansiRed>"
+                else
+                    pay_color = "<white>"
+                end
 
-function ui_render_header()
-    UI.hauling_window:cecho("<b>Available Work:</b>\n")
-
-    local function header_link(label, column, sortable)
-        local isActive = (UI.hauling_sort.column == column)
-        local color    = isActive and "<ansiGreen>" or "<white>"
-        
-        if sortable then
-            UI.hauling_window:cechoLink(
-                color .. label .. "<reset>",
-                function() ui_toggle_sort(column) end,
-                "Sort by " .. label,
-                true
-            )
-        else
-            UI.hauling_window:cecho(color .. label .. "<reset>")
-        end
-    end
-
-    header_link("Job", "job", true)
-    UI.hauling_window:cecho(" ")
-    header_link(rpad("Origin", 9), "origin", true)
-    UI.hauling_window:cecho("  ")
-    header_link(rpad("Dest", 9), "dest", true)
-    header_link(lpad("Moves", 8), "moves", false)
-    UI.hauling_window:cecho("    ")
-    header_link("Pay", "pay", true)
-    UI.hauling_window:cecho("\n")
-end
-
-function ui_render_job_line(job)
-    -- Job number (right-aligned to 3 chars)
-    local job_pad = string.rep(" ", 3 - #job.job_number)
-
-    UI.hauling_window:cecho(job_pad)
-    UI.hauling_window:cechoLink(
-        "<blue><u>" .. job.job_number .. "</u><reset>",
-        function() send("ac " .. job.job_number) end,
-        "Accept job " .. job.job_number,
-        true
-    )
-    UI.hauling_window:cecho(" ")
-
-    -- Origin (left-aligned, 9 chars)
-    UI.hauling_window:cechoLink(
-        "<ansiCyan>" .. rpad(job.origin_display, 9) .. "<reset>",
-        function() send("whereis " .. job.origin) end,
-        "Find " .. job.origin,
-        true
-    )
-
-    UI.hauling_window:cecho(" > ")
-
-    -- Dest (left-aligned, 9 chars)
-    UI.hauling_window:cechoLink(
-        "<ansiCyan>" .. rpad(job.dest_display, 9) .. "<reset>",
-        function() send("whereis " .. job.dest) end,
-        "Find " .. job.dest,
-        true
-    )
-
-    -- Moves (right-aligned, total 8 chars including "gtu")
-    local dist    = job.distance
-    local allowed = job.allowed_moves
-
-    if dist then
-        local dist_color
-
-        if dist < allowed then
-            dist_color = "<ansiGreen>"
-        elseif dist > allowed then
-            dist_color = "<ansiRed>"
-        else
-            dist_color = "<white>"
-        end
-
-        local moves     = tostring(allowed) .. "/" .. tostring(dist) .. "gtu"
-        local moves_pad = string.rep(" ", 8 - #moves)
-        UI.hauling_window:cecho(moves_pad .. "<b>" .. allowed .. "</b>/" .. dist_color .. "<b>" .. dist .. "</b><reset>gtu")
-    else
-        local moves     = tostring(allowed) .. "gtu"
-        local moves_pad = string.rep(" ", 8 - #moves)
-        UI.hauling_window:cecho(moves_pad .. "<b>" .. allowed .. "</b>gtu")
-    end
-
-    UI.hauling_window:cecho(" ")
-
-    -- Pay (right-aligned to 4 chars)
-    local pay_pad = string.rep(" ", 4 - #tostring(job.base_pay))
-    UI.hauling_window:cecho(pay_pad .. "<b>" .. job.base_pay .. "</b>ig")
-
-    -- Bonus/Penalty
-    if job.pay_type == "bonus" then
-        UI.hauling_window:cecho(" (<ansiGreen><b>" .. job.effective_pay .. "</b><reset>ig)")
-    elseif job.pay_type == "penalty" then
-        UI.hauling_window:cecho(" (<ansiRed><b>" .. job.effective_pay .. "</b><reset>ig)")
-    end
+                return "<b>" .. row.base_pay .. "</b>ig (" .. pay_color .. "<b>" .. row.effective_pay .. "</b><reset>)"
+            end,
+            sort_value = function(row)
+                return row.effective_pay
+            end
+        }
+    }
     
-    UI.hauling_window:cecho("\n")
-end
-
-function ui_display_hauling_jobs()
-    if not UI.hauling_window then
-        cecho("\n<red>Error: UI.hauling_window not found!\n")
-        return
-    end
-
-    clearWindow("UI.hauling_window")
-
-    if #UI.hauling_jobs == 0 then
-        UI.hauling_window:cecho("No hauling jobs available.\n")
-        return
-    end
-
-    ui_sort_jobs()
-    ui_render_header()
-
-    for _, job in ipairs(UI.hauling_jobs) do
-        ui_render_job_line(job)
-    end
+    -- Optional: Configure separators
+    local separators = {
+        column = " ",    -- Single space between columns (default)
+        header = nil,    -- No header separator
+        row = nil        -- No row separators
+    }
+    
+    -- Create the table
+    ui_table_create("hauling_jobs", UI.hauling_window, hauling_columns, separators)
 end
 
 -- =============================================================================
@@ -236,15 +139,16 @@ end
 -- =============================================================================
 
 function ui_on_hauling_header()
-    UI.hauling_jobs = {}
+    ui_table_clear("hauling_jobs")
 end
 
 function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
+    local effective_pay, pay_type
     local base_pay          = tonumber(pay_per_ton) * 75
     local allowed_moves_num = tonumber(allowed_moves)
-    local distance          = ui_get_route_distance(origin, dest)
+    local distance, err     = f2t_map_get_route_info(origin, dest)
 
-    local effective_pay, pay_type
+    if distance and distance.success then distance = distance.space_moves end
 
     if not distance then
         effective_pay = base_pay
@@ -257,23 +161,30 @@ function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
         pay_type      = "penalty"
     else
         effective_pay = base_pay
-        pay_type      = "normal"
+        pay_type = "normal"
     end
-
-    table.insert(UI.hauling_jobs, {
-        job_number     = job_number,
-        origin         = origin,
-        dest           = dest,
+    
+    local job_data = {
+        job_number = job_number,
+        origin = origin,
+        dest = dest,
         origin_display = stripThe(origin),
-        dest_display   = stripThe(dest),
-        allowed_moves  = allowed_moves_num,
-        base_pay       = base_pay,
-        distance       = distance,
-        effective_pay  = effective_pay,
-        pay_type       = pay_type
-    })
-
-    ui_display_hauling_jobs()
+        dest_display = stripThe(dest),
+        allowed_moves = allowed_moves_num,
+        base_pay = base_pay,
+        distance = distance,
+        effective_pay = effective_pay,
+        pay_type = pay_type,
+        moves = allowed_moves_num .. "/" .. (distance or "?"),
+        pay = base_pay
+    }
+    
+    -- Add to table data
+    local tbl = UI.tables["hauling_jobs"]
+    if tbl then
+        table.insert(tbl.data, job_data)
+        ui_table_render("hauling_jobs")
+    end
 end
 
 -- =============================================================================
@@ -281,6 +192,8 @@ end
 -- =============================================================================
 
 function ui_hauling()
+    ui_hauling_init()
+
     UI.button_work = Geyser.Label:new(
         {
             name    = "UI.button_work",

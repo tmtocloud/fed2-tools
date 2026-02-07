@@ -10,11 +10,11 @@ function ui_cargo()
         for key, value in pairs(cargo) do
             UI.cargo_window:cecho("<b>"..value.commodity) --name of the commodity
             UI.cargo_window:cecho("</b> at ")
-            UI.cargo_window:echo(value.cost) --how much you paid for it
-            UI.cargo_window:echo("/")
-            UI.cargo_window:echo(value.base) --default price of commodity
+            UI.cargo_window:cecho(value.cost) --how much you paid for it
+            UI.cargo_window:cecho("/")
+            UI.cargo_window:cecho(value.base) --default price of commodity
 
-            if value.base-value.cost >=0 then
+            if value.base-value.cost >= 0 then
                 UI.cargo_window:cecho(" (<green>+"..value.base-value.cost)
             else
                 UI.cargo_window:cecho(" (<red>-"..value.base-value.cost)

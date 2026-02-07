@@ -63,7 +63,7 @@ function ui_build()
     ui_build_movement()
     ui_hauling()
     ui_trading()
-    ui_output_commodities()
+    ui_commodities()
     ui_update_for_rank()
 end
 

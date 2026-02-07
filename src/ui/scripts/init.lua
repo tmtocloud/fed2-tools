@@ -52,7 +52,9 @@ end
 
 -- Registers an event with mudlet and also stores it in a UI registry for enable/disable
 function f2t_ui_register_event(trigger, action)
-    assert(type(action) == "string", "action function must be given in string form")
+    f2t_debug_log("registering event with trigger: %s and action: %s action is type: %s", trigger, actions, type(action))
+
+    if type(action) ~= "string" then error("action function must be given in string form") end
 
     F2T_UI_STATE.events[action] = {}
     F2T_UI_STATE.events[action].trigger = trigger
@@ -166,13 +168,13 @@ function f2t_ui_status()
 
     cecho(string.format("\n<cyan>[ui]<reset> Status: %s\n", status))
 
-    cecho(string.format("  Containers: %d\n", f2t_table_count_keys(F2T_UI_STATE.containers))
-    )
+    cecho(string.format("  Containers: %d\n", f2t_table_count_keys(F2T_UI_STATE.containers)))
 
     cecho(string.format("  Triggers: %d | Aliases: %d | Events: %d\n", 
         #F2T_UI_STATE.triggers,
         #F2T_UI_STATE.aliases,
-        #F2T_UI_STATE.events))
+        #F2T_UI_STATE.events
+    ))
 end
 
 -- Apply saved state on load (after UI elements are created)
