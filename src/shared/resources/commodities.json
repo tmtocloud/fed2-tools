@@ -2,6 +2,7 @@
   "groups": [
     {
       "name": "Agricultural",
+      "shortName": "agri",
       "commodities": [
         {"name": "Cereals", "basePrice": 270},
         {"name": "Fruit", "basePrice": 420},
@@ -32,6 +33,7 @@
     },
     {
       "name": "Industrial",
+      "shortName": "ind",
       "commodities": [
         {"name": "Explosives", "basePrice": 470},
         {"name": "Generators", "shortName": "gens", "basePrice": 670},
@@ -48,6 +50,7 @@
     },
     {
       "name": "Technological",
+      "shortName": "tech",
       "commodities": [
         {"name": "AntiMatter", "shortName": "anti", "basePrice": 480},
         {"name": "Controllers", "basePrice": 710},

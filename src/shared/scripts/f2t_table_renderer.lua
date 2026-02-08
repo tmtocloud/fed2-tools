@@ -525,12 +525,13 @@ function f2t_render_table(config)
         f2t_render_row(row, columns, widths)
     end
 
+    -- Bottom separator (always, not just for footer)
+    if show_separators then
+        cecho(string.rep(separator_char, table_width) .. "\n")
+    end
+
     -- Render footer if configured
     if config.footer and config.footer.aggregations and agg_row then
-        if show_separators then
-            cecho(string.rep(separator_char, table_width) .. "\n")
-        end
-
         f2t_render_footer(config.footer, agg_row, columns, widths)
     end
 end

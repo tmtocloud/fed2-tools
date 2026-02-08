@@ -9,6 +9,7 @@ A Mudlet package for [Federation 2 Community Edition](https://federation2.com) t
 | Map | `nav`, `map` | Auto-mapping builds the map as you explore. Speedwalk navigation gets you anywhere fast. Exploration mode automatically visits unmapped rooms. |
 | Hauling | `haul` | Automated trading that adapts to your rank. Commanders/Captains run Armstrong Cuthbert jobs, Adventurers do Akaturi deliveries, Merchants+ trade between exchanges. |
 | Factory | `factory` | View status of all your factories in one table. Flush all production to market with a single command. |
+| Planet Owner | `po` | View your planet's economy at a glance — commodity values, production, consumption, stock levels, and efficiency. Filter by commodity group. |
 | Commodities | `price`, `bb`, `bs` | Check commodity prices across all cartel exchanges. Find the best places to buy and sell, with profit calculations. Buy or sell commodities in bulk at exchanges. |
 | Auto-Refuel | `f2t settings` | Automatically refuels your ship when landing at shuttlepads. Triggers when fuel drops below your configured threshold. |
 | Stamina Monitor | `f2t settings` | Detects low stamina and navigates to buy food. Pauses active automation, refills stamina, then returns you to where you were. |
@@ -220,6 +221,19 @@ Send all production to market:
 factory flush          # or: fac flush
 ```
 
+### Planet Owner (Founder+)
+
+View your planet's economy:
+
+```
+po economy             # Economy for current planet
+po economy Earth       # Economy for specific planet
+po economy agri        # Filter by commodity group
+po econ Earth tech     # Planet + group filter
+```
+
+**Groups:** agricultural (agri), resource, industrial (ind), technological (tech), biological, leisure
+
 ### System Commands
 
 ```
@@ -288,6 +302,7 @@ map help
 haul help
 price help
 factory help
+po help
 bb help
 bs help
 f2t help
