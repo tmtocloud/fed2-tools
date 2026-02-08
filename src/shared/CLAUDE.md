@@ -742,7 +742,7 @@ Registered in the `shared` component:
 
 ```lua
 -- Threshold percentage to trigger food buying (0=disabled, 1-99=enabled)
-f2t_settings_get("shared", "stamina_threshold")  -- default: 0
+f2t_settings_get("shared", "stamina_threshold")  -- default: 25
 
 -- Food source location: Fed2 room hash OR saved destination name
 -- Examples: "Sol.Earth.454", "earth", "Sol Exchange"

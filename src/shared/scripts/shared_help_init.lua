@@ -50,7 +50,8 @@ f2t_register_help("f2t settings", {
         "f2t settings                          # List all settings",
         "f2t settings set stamina_threshold 25 # Enable stamina at 25%",
         "f2t settings set food_source earth    # Set food source location",
-        "f2t settings clear stamina_threshold  # Disable (reset to 0)"
+        "f2t settings set stamina_threshold 0   # Disable stamina monitoring",
+        "f2t settings clear stamina_threshold  # Reset to default (25%)"
     }
 })
 

@@ -263,10 +263,10 @@ Settings are organized by component. Use `<component> settings` to see all setti
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| refuel_threshold | 0 | Auto-refuel threshold (0=disabled, 1-99=refuel at/below %) |
+| refuel_threshold | 50 | Auto-refuel threshold (0=disabled, 1-99=refuel at/below %) |
 | stamina_threshold | 25 | Stamina % to trigger food run (0=disabled, 1-99=buy food at below %)|
 | food_source | Sol.Earth.454 | Where to buy food |
-| death_monitor_enabled | false | Auto-lock death rooms |
+| death_monitor_enabled | true | Auto-lock death rooms |
 | safe_room | (empty) | Safe destination for hauling (e.g., "earth") |
 
 **Map settings** (`map settings`):
