@@ -74,7 +74,21 @@ F2T_HAULING_STATE = {
     akaturi_delivery_error = false,
     akaturi_pickup_sent = false,
     akaturi_delivery_sent = false,
-    akaturi_payment_amount = nil
+    akaturi_payment_amount = nil,
+
+    -- Planet Owner mode state (Founder+ rank)
+    po_owned_planets = {},           -- Array of owned planet names (discovered during scan)
+    po_current_system = nil,         -- System being operated in
+    po_planet_exchange_data = {},    -- {[planet_name] = exchange_data_array}
+    po_job_queue = {},               -- Array of resolved job objects
+    po_job_index = 1,                -- Current position in queue
+    po_current_job = nil,            -- Currently executing job
+    po_ship_lots = 0,                -- Ship capacity in lots (hold.max / 75)
+    po_scan_count = 0,               -- Full scan iterations completed
+    po_deficit_count = 0,            -- Deficits found in last scan
+    po_excess_count = 0,             -- Excesses found in last scan
+    po_sell_attempts = 0,            -- Sell attempt counter for partial sell retry
+    po_scan_planets = {}             -- Planets to scan during exchange scan
 }
 
 -- Settings registration
@@ -119,6 +133,17 @@ f2t_settings_register("hauling", "excluded_commodities", {
     validator = function(value)
         if type(value) ~= "string" then
             return false, "Must be a comma-separated string"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "po_mode", {
+    description = "PO hauling mode: 'both' (deficit + excess) or 'deficit' (deficit only)",
+    default = "both",
+    validator = function(value)
+        if value ~= "both" and value ~= "deficit" then
+            return false, "Must be 'both' or 'deficit'"
         end
         return true
     end

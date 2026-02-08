@@ -124,11 +124,16 @@ function f2t_po_capture_exchange_complete()
 end
 
 --- Abort capture with error message
+--- Calls stored callback with empty data so callers don't hang
 --- @param message string Error message to display
 function f2t_po_capture_abort(message)
     f2t_debug_log("[po] Aborting: %s", message)
     cecho(string.format("\n<red>[po]<reset> %s\n", message))
+    local callback = f2t_po.callback
     f2t_po_reset()
+    if callback then
+        callback({})
+    end
 end
 
 -- ========================================
@@ -143,6 +148,15 @@ function f2t_po_economy_start(planet, group)
     -- Check before showing progress message
     if f2t_po.phase ~= "idle" then
         cecho("\n<red>[po]<reset> A capture is already in progress\n")
+        return
+    end
+
+    -- Verify planet ownership via GMCP
+    local owner = gmcp.room and gmcp.room.info and gmcp.room.info.owner
+    local player_name = gmcp.char and gmcp.char.vitals and gmcp.char.vitals.name
+    if not owner or not player_name or owner ~= player_name then
+        cecho(string.format("\n<red>[po]<reset> Current system is not owned by you (owner: %s)\n",
+            owner or "unknown"))
         return
     end
 

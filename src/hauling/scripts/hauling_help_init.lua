@@ -1,9 +1,10 @@
 -- Hauling Component Help Registration
 
 f2t_register_help("haul", {
-    description = "Automated commodity trading for merchants (buy low, sell high, repeat)",
+    description = "Automated commodity trading (rank-dependent mode)",
     usage = {
-        {cmd = "haul start", desc = "Start automated hauling"},
+        {cmd = "haul start", desc = "Start hauling (auto-detects mode by rank)"},
+        {cmd = "haul start exchange", desc = "Force exchange mode (Founder+ only)"},
         {cmd = "haul stop", desc = "Gracefully stop (finish selling cargo first)"},
         {cmd = "haul terminate", desc = "Stop immediately without finishing cycle"},
         {cmd = "", desc = ""},
@@ -16,6 +17,7 @@ f2t_register_help("haul", {
     },
     examples = {
         "haul start              # Begin automated trading",
+        "haul start exchange     # Force exchange mode (Founder+)",
         "haul pause              # Pause at current step",
         "haul resume             # Continue from pause",
         "",

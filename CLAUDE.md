@@ -1136,7 +1136,7 @@ Multiple components provide various tools. Each has `CLAUDE.md` in source direct
 - **refuel** - Automatic ship refueling (`src/refuel/CLAUDE.md`)
 - **commodities** - Price analysis, bulk buy/sell (`src/commodities/CLAUDE.md`)
 - **map** - Custom mapper with auto-mapping (`src/map/CLAUDE.md`)
-- **hauling** - Automated commodity trading for merchants (`src/hauling/CLAUDE.md`)
+- **hauling** - Automated commodity trading, rank-adaptive (`src/hauling/CLAUDE.md`)
 - **po** - Planet owner tools: economy overview (`src/po/CLAUDE.md`)
 - **shared** - Common utilities including stamina monitoring (`src/shared/CLAUDE.md`)
 

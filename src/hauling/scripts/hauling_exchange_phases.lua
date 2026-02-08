@@ -311,7 +311,7 @@ function f2t_hauling_remove_current_commodity()
             end
 
             -- Find any exchange that will buy this commodity
-            if #analysis.top_buy > 0 then
+            if analysis and analysis.top_buy and #analysis.top_buy > 0 then
                 -- Take the first exchange that will buy (we don't care about price anymore)
                 local dump_location = analysis.top_buy[1]
 
@@ -343,9 +343,11 @@ function f2t_hauling_remove_current_commodity()
                 end
                 -- Otherwise speedwalk is in progress or navigation is retrying, GMCP handler will detect completion
             else
-                -- No exchanges buying this commodity at all - this shouldn't happen
-                cecho(string.format("\n<red>[hauling]<reset> ERROR: No exchanges buying %s - cannot dump cargo!\n", commodity))
-                f2t_hauling_stop()
+                -- No exchanges buying this commodity - jettison and move on
+                cecho(string.format("\n<yellow>[hauling]<reset> No exchanges buying %s, jettisoning remaining cargo\n", commodity))
+                f2t_hauling_jettison_cargo(function()
+                    f2t_hauling_finish_remove_commodity()
+                end)
             end
         end)
         return
@@ -420,7 +422,9 @@ function f2t_hauling_find_next_dump_location()
             MAX_DUMP_ATTEMPTS, commodity))
         f2t_debug_log("[hauling] Max dump attempts exceeded, jettisoning cargo")
 
-        f2t_hauling_jettison_cargo()
+        f2t_hauling_jettison_cargo(function()
+            f2t_hauling_finish_remove_commodity()
+        end)
         return
     end
 
@@ -466,58 +470,9 @@ function f2t_hauling_find_next_dump_location()
             cecho(string.format("\n<yellow>[hauling]<reset> No more exchanges buying <cyan>%s<reset>, jettisoning...\n", commodity))
             f2t_debug_log("[hauling] No more exchanges available, jettisoning cargo")
 
-            f2t_hauling_jettison_cargo()
-        end
-    end)
-end
-
--- Jettison all remaining cargo when we can't sell it
-function f2t_hauling_jettison_cargo()
-    local cargo = gmcp.char.ship.cargo
-    if not cargo or #cargo == 0 then
-        f2t_debug_log("[hauling] No cargo to jettison")
-        f2t_hauling_finish_remove_commodity()
-        return
-    end
-
-    local commodity = F2T_HAULING_STATE.current_commodity
-    local lots_remaining = #cargo
-
-    f2t_debug_log("[hauling] Jettisoning %d lots of %s", lots_remaining, commodity)
-    cecho(string.format("\n<red>[hauling]<reset> Jettisoning %d lots of <cyan>%s<reset> (cannot sell)...\n",
-        lots_remaining, commodity))
-
-    -- Jettison each lot
-    for i = 1, lots_remaining do
-        send(string.format("jettison %s", commodity))
-
-        -- Small delay between jettisons to avoid spam
-        if i < lots_remaining then
-            tempTimer(0.1 * i, function()
-                send(string.format("jettison %s", commodity))
+            f2t_hauling_jettison_cargo(function()
+                f2t_hauling_finish_remove_commodity()
             end)
-        end
-    end
-
-    -- After jettisoning, verify cargo is empty and continue
-    tempTimer(0.1 * lots_remaining + 0.5, function()
-        if not F2T_HAULING_STATE.active or F2T_HAULING_STATE.paused then
-            return
-        end
-
-        local cargo_after = gmcp.char.ship.cargo
-        if cargo_after and #cargo_after > 0 then
-            cecho(string.format("\n<yellow>[hauling]<reset> Warning: %d lots still in hold after jettison\n", #cargo_after))
-            f2t_debug_log("[hauling] WARNING: Cargo not empty after jettison, trying again")
-
-            -- Try one more time
-            f2t_hauling_jettison_cargo()
-        else
-            f2t_debug_log("[hauling] Cargo successfully jettisoned")
-            cecho("\n<green>[hauling]<reset> Cargo jettisoned, continuing to next commodity\n")
-
-            -- Move to next commodity
-            f2t_hauling_finish_remove_commodity()
         end
     end)
 end

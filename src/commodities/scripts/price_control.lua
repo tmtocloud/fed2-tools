@@ -7,11 +7,17 @@
 function f2t_price_check_commodity(commodity, callback)
     -- Check prerequisites before sending game command
     if not f2t_check_rank_requirement("Merchant", "Price checking") then
-        if callback then f2t_price_cancel_all() end
+        if callback then
+            f2t_price_cancel_all()
+            callback(commodity, nil, nil)
+        end
         return
     end
     if not f2t_check_tool_requirement("remote-access-cert", "Price checking", "Remote Price Check Service") then
-        if callback then f2t_price_cancel_all() end
+        if callback then
+            f2t_price_cancel_all()
+            callback(commodity, nil, nil)
+        end
         return
     end
 
