@@ -1,4 +1,4 @@
--- Bulk sell logic for f2t-bulk-commands
+-- Bulk sell logic for commodities component
 
 -- Count how many lots of a commodity are in the cargo hold
 local function count_cargo_lots(commodity)

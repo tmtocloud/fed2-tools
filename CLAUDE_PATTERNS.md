@@ -578,7 +578,7 @@ end
 | Pattern matching | Specific patterns | Broad `^.+$` |
 | Line parsing | In triggers | In timer callback |
 | Best for | Known formats | Unknown/variable formats |
-| Examples | commodities, bulk-commands | factory, map jump |
+| Examples | commodities (price + bulk buy/sell) | factory, map jump |
 
 ---
 

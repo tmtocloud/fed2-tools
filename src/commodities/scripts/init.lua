@@ -49,4 +49,48 @@ f2t_register_help("price", {
     }
 })
 
+-- Global state for bulk command operations
+F2T_BULK_STATE = {
+    active = false,      -- Whether a bulk operation is in progress
+    command = nil,       -- "buy" or "sell"
+    commodity = nil,     -- Commodity name
+    remaining = 0,       -- Number of operations remaining
+    total = 0,           -- Total operations requested
+    callback = nil,      -- Callback function for programmatic mode
+
+    -- Sell tracking (for margin calculation)
+    total_cost = 0,      -- Total cost of cargo being sold
+    total_revenue = 0,   -- Total revenue from sales
+    lots_sold = 0        -- Number of lots sold (for averaging)
+}
+
+-- Register help for bulk buy command
+f2t_register_help("bb", {
+    description = "Bulk buy commodities at exchanges",
+    usage = {
+        {cmd = "bb <commodity> [count]", desc = "Buy commodity in bulk"},
+        {cmd = "bb <commodity>", desc = "Buy all available cargo space"}
+    },
+    examples = {
+        "bb alloys       # Buy alloys until cargo full",
+        "bb alloys 5     # Buy exactly 5 lots of alloys",
+        "bb grain 10     # Buy 10 lots of grain"
+    }
+})
+
+-- Register help for bulk sell command
+f2t_register_help("bs", {
+    description = "Bulk sell commodities at exchanges",
+    usage = {
+        {cmd = "bs", desc = "Sell entire cargo hold"},
+        {cmd = "bs <commodity>", desc = "Sell all lots of specific commodity"},
+        {cmd = "bs <commodity> <count>", desc = "Sell specific number of lots"}
+    },
+    examples = {
+        "bs              # Sell everything in cargo",
+        "bs alloys       # Sell all alloys lots",
+        "bs grain 5      # Sell 5 lots of grain"
+    }
+})
+
 f2t_debug_log("[commodities] Component initialized")

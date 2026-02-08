@@ -1,4 +1,4 @@
--- Bulk buy logic for f2t-bulk-commands
+-- Bulk buy logic for commodities component
 
 -- Start a bulk buy operation
 -- @param commodity: The commodity to buy (supports short names like "petros")

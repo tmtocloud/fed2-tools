@@ -1134,8 +1134,7 @@ Multiple components provide various tools. Each has `CLAUDE.md` in source direct
 
 - **factory** - View all factory statuses (`src/factory/CLAUDE.md`)
 - **refuel** - Automatic ship refueling (`src/refuel/CLAUDE.md`)
-- **bulk-commands** - Bulk buy/sell commodities (`src/bulk-commands/CLAUDE.md`)
-- **commodities** - Check prices, analyze trading (`src/commodities/CLAUDE.md`)
+- **commodities** - Price analysis, bulk buy/sell (`src/commodities/CLAUDE.md`)
 - **map** - Custom mapper with auto-mapping (`src/map/CLAUDE.md`)
 - **hauling** - Automated commodity trading for merchants (`src/hauling/CLAUDE.md`)
 - **po** - Planet owner tools: economy overview (`src/po/CLAUDE.md`)
@@ -1263,6 +1262,7 @@ Federation 2 provides game data via GMCP (General Mud Communication Protocol).
 
 **Character Information:**
 - `gmcp.char.vitals.rank` - Character rank (e.g., "Merchant", "Adventurer")
+- `gmcp.char.vitals.tools` - Table of game tools/upgrades (e.g., `{["remote-access-cert"] = {days = 20}}`)
 - `gmcp.char.*` - Character stats/status
 
 **Important:** `hold.cur` is AVAILABLE space. If max=675 and cur=675, hold is EMPTY. If cur=0, hold is FULL.

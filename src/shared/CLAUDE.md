@@ -379,6 +379,45 @@ if not f2t_check_rank_requirement("Merchant", "Hauling automation") then
 end
 ```
 
+## Tool Availability (`f2t_tools.lua`)
+
+Checks game tools/upgrades available to the player via `gmcp.char.vitals.tools`.
+
+### Query Functions
+
+**`f2t_get_tool(tool_name)`** - Get tool data from GMCP
+
+Returns the tool's data table (e.g., `{days = 20}`), or `nil` if not available. Safely checks the full GMCP path.
+
+```lua
+local cert = f2t_get_tool("remote-access-cert")
+if cert then
+    -- cert.days = days remaining
+end
+```
+
+**`f2t_has_tool(tool_name)`** - Check if player has a tool
+
+Returns `true`/`false`. Convenience wrapper around `f2t_get_tool()`.
+
+```lua
+if f2t_has_tool("remote-access-cert") then
+    -- Player has the certificate
+end
+```
+
+### Requirement Checking
+
+**`f2t_check_tool_requirement(tool_name, feature_name, display_name)`** - Check and display error
+
+Returns `true` if tool exists, `false` with user-facing error message otherwise. Mirrors `f2t_check_rank_requirement()`. Optional `display_name` provides a user-friendly name (defaults to `tool_name`).
+
+```lua
+if not f2t_check_tool_requirement("remote-access-cert", "Price checking", "Remote Price Check Service") then
+    return  -- Shows: "Price checking requires the Remote Price Check Service tool"
+end
+```
+
 ## Resources
 
 ### `commodities.json`
