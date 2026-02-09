@@ -121,6 +121,16 @@ function f2t_map_navigate(destination)
                 end
             end
 
+            -- Special handling for "link" flag
+            -- Link rooms are in system space, not on planet surface
+            if flag == "link" then
+                local space_area = f2t_map_get_system_space_area_actual(area_name)
+                if space_area then
+                    search_area_name = space_area
+                    f2t_debug_log("[map] Resolved link: system '%s' -> space area '%s'", area_name, search_area_name)
+                end
+            end
+
             -- Look up area ID (case-insensitive)
             local area_id = f2t_map_get_area_id(search_area_name)
         if not area_id then
