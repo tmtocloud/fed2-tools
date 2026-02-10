@@ -1,20 +1,14 @@
 function ui_build_tabs()
-  -- Place Overflow/Commodities tabs In Left Navigation Frame (default location)
-  UI.tab_left = Adjustable.TabWindow:new(
-    {
-      name             = "UI.tab_left",
-      x                = "0%",
-      y                = "0%",
-      width            = "100%",
-      height           = "100%",
-      tabBarHeight     = "5%",
-      tabs             = {"Overflow", "Commodities"},
-      activeTabStyle   = UI.style.active_tab_css,
-      inactiveTabStyle = UI.style.inactive_tab_css,
-      footerStyle      = UI.style.footer_css,
-      centerStyle      = UI.style.center_css,
-    },
-    UI.left_frame
+  -- Build the box to split the right frame in half
+  UI.vbox_left = Geyser.VBox:new(
+      {
+          name   = "UI.vbox_left",
+          x      = 0,
+          y      = 0,
+          width  = "100%",
+          height = "100%"
+      },
+      UI.left_frame
   )
 
   -- Build the box to split the right frame in half
@@ -29,6 +23,42 @@ function ui_build_tabs()
       UI.right_frame
   )
 
+  -- Place Overflow/Commodities tabs In Top Left Navigation Frame (default location)
+  UI.tab_top_left = Adjustable.TabWindow:new(
+    {
+      name             = "UI.tab_left",
+      x                = "0%",
+      y                = "0%",
+      width            = "100%",
+      height           = "100%",
+      tabBarHeight     = "8%",
+      tabs             = {"Overflow", "Commodities"},
+      activeTabStyle   = UI.style.active_tab_css,
+      inactiveTabStyle = UI.style.inactive_tab_css,
+      footerStyle      = UI.style.footer_css,
+      centerStyle      = UI.style.center_css,
+    },
+    UI.vbox_left
+  )
+
+  -- Place Comms tab on the top of the Bottom Left Navigation Frame (default location)
+  UI.tab_bottom_left = Adjustable.TabWindow:new(
+    {
+      name             = "UI.tab_bottom_left",
+      x                = "0%",
+      y                = "0%",
+      width            = "100%",
+      height           = "100%",
+      tabBarHeight     = "8%",
+      tabs             = {"Comm"},
+      activeTabStyle   = UI.style.active_tab_css,
+      inactiveTabStyle = UI.style.inactive_tab_css,
+      footerStyle      = UI.style.footer_css,
+      centerStyle      = UI.style.center_css,
+    },
+    UI.vbox_left
+  )
+
   -- Place Map/Comms tabs on the top of the Right Navigation Frame (default location)
   UI.tab_top_right = Adjustable.TabWindow:new(
     {
@@ -37,8 +67,8 @@ function ui_build_tabs()
       y                = "0%",
       width            = "100%",
       height           = "100%",
-      tabBarHeight     = "10%",
-      tabs             = {"fedmap","Comm"},
+      tabBarHeight     = "8%",
+      tabs             = {"fedmap"},
       activeTabStyle   = UI.style.active_tab_css,
       inactiveTabStyle = UI.style.inactive_tab_css,
       footerStyle      = UI.style.footer_css,
@@ -55,7 +85,7 @@ function ui_build_tabs()
       y                = "0%",
       width            = "100%",
       height           = "100%",
-      tabBarHeight     = "10%",
+      tabBarHeight     = "8%",
       tabs             = {"Cargo","Hauling","Trading"},
       activeTabStyle   = UI.style.active_tab_css,
       inactiveTabStyle = UI.style.inactive_tab_css,
@@ -70,18 +100,6 @@ end
 function ui_build_tab_content()
   local text_size = 12
 
-  --put map into map window
-  UI.mapper = Geyser.Mapper:new(
-    {
-      name   = "fedmap",
-      x      = 0,
-      y      = 0, 
-      width  = "100%",
-      height = "100%",
-    },
-    UI.tab_top_right.fedmapcenter
-  )
-
   --put overflow console in overflow tab
   UI.overflow_window = Geyser.MiniConsole:new(
     {
@@ -95,7 +113,7 @@ function ui_build_tab_content()
       fontSize  = text_size,
       color     = "black",
     },
-    UI.tab_left.Overflowcenter
+    UI.tab_top_left.Overflowcenter
   )
   
   --put commodities console in commodities tab
@@ -111,7 +129,7 @@ function ui_build_tab_content()
       fontSize  = text_size,
       color     = "black",
     },
-    UI.tab_left.Commoditiescenter
+    UI.tab_top_left.Commoditiescenter
   )
   
   --put chat console in chat tab
@@ -127,9 +145,21 @@ function ui_build_tab_content()
       fontSize  = text_size,
       color     = "black",
     },
-    UI.tab_top_right.Commcenter
+    UI.tab_bottom_left.Commcenter
   )
-    
+
+  --put map into map window
+  UI.mapper = Geyser.Mapper:new(
+    {
+      name   = "fedmap",
+      x      = 0,
+      y      = 0, 
+      width  = "100%",
+      height = "100%",
+    },
+    UI.tab_top_right.fedmapcenter
+  )
+
   --put cargo console in cargo tab
   UI.cargo_window = Geyser.MiniConsole:new(
     {

@@ -65,6 +65,18 @@ function ui_build_header()
     end
 end
 
+UI.magic_cash_numbers = {
+  ["Commander"]     = 250000,
+  ["Captain"]       = 400000,
+  ["Adventurer"]    = 600000,
+  ["Adventuress"]   = 600000,
+  ["Merchant"]      = 7500000,
+  ["Trader"]        = 12500000,
+  ["Industrialist"] = 17500000,
+  ["Manufacturer"]  = 22500000,
+  ["Financier"]     = 27500000,
+}
+
 -- Tracking: Rank, Cargo Space, Fuel, Stamina, Money, Slithies
 function ui_update_header()
     -- Safety check: don't update if UI hasn't been built yet

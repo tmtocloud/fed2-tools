@@ -6,7 +6,7 @@
 f2t_ui_register_trigger("echoExchange")
 
 --puts the Commodity name into the exchange window
-local commodities = ui_commodities()
+local commodities = ui_commodities_load()
 local base_price  = "???"
 
 for _, commodity in ipairs(commodities) do

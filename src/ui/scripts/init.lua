@@ -78,14 +78,10 @@ function f2t_ui_enable()
     F2T_UI_STATE.enabled = true
 
     -- If we never ran the usual initial startup, then do that
-    if not ui_built then 
-        ui_build()
-        ui_built = true
-    end
-    if not ui_evented then 
-        ui_event_register()
-        ui_evented = true
-    end
+    if not ui_built     then ui_build()            end
+    if not ui_triggered then ui_register_trigger() end
+    if not ui_evented   then ui_register_event()   end
+    if not ui_aliased   then ui_register_alias()   end
 
     -- If there were any previously-registered elements, just enable them, the above probably wont have run
     -- Enable UI

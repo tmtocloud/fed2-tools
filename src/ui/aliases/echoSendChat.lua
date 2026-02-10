@@ -1,17 +1,18 @@
 -- @patterns:
 --   - pattern: ^(?:(?i:(com|comm|say))\s+(.*)|(''|'|")\s*(.*))$
-f2t_ui_register_alias("echoSendChat")
 
 local display
 local text = ""
 
 if matches[2] ~= "" then
-    display = matches[2]:lower()
     text = matches[3] or ""
 else
-    display = "say"
     text = matches[5] or ""
 end
 
+local speaker = gmcp.char.vitals.name
+
 send(matches[1], false)
-UI.chat_window:cecho('<ansiCyan>You ' .. display .. ': "' .. text .. '"\n')
+
+-- This is ansiCyan but a few shades darker to distinguish between self and others
+UI.chat_window:hecho('#4fa3a3' .. speaker .. ': "' .. text .. '"\n')

@@ -79,7 +79,9 @@ function ui_commodities_load()
             })
         end
     end
-    
+
+    table.sort(commodities, function(a, b) return a.name < b.name end)
+
     return commodities
 end
 

@@ -2,7 +2,7 @@ function ui_trading()
     ------------- Trading Commodity Dropdown ---------------
     UI.trading_drop_down_button = Geyser.Label:new(
         {
-            name   = "UI.trading_drop_down_button",
+            name    = "UI.trading_drop_down_button",
             message = "<center>Select Commodity ▼</center>",
         },
         UI.trading_button_bar
@@ -38,12 +38,12 @@ function ui_trading()
         use_cartel         = true,
         -- Initialize profit search state
         profit_search      = {
-            active              = false,
+            active                = false,
             commodities_to_search = {},
-            current_index        = 1,
-            results             = {},
-            best_commodity       = nil,
-            best_profit          = -math.huge,
+            current_index         = 1,
+            results               = {},
+            best_commodity        = nil,
+            best_profit           = -math.huge,
         }
     }
 
@@ -67,6 +67,7 @@ function ui_show_trading_drop_down()
     if UI.commodity_popup then
         UI.commodity_popup:hide()
         UI.commodity_popup = nil
+
         return
     end
 
@@ -78,10 +79,9 @@ function ui_show_trading_drop_down()
             width  = 220,
             height = 400,
         },
-        UI.tradingContainer
+        UI.trading_container
     )
 
-    -- Use MiniConsole for scrollable list instead
     local commodityBox = Geyser.ScrollBox:new(
         {
             name            = "commodityBox",
@@ -99,7 +99,7 @@ function ui_show_trading_drop_down()
     local y_offset   = 0
     local commods    = {}
 
-    local commodity_list = ui_commodities()
+    local commodity_list = ui_commodities_load()
 
     for i, item in ipairs(commodity_list) do
         local labelName = "commod" .. i
@@ -161,7 +161,7 @@ function ui_check_price()
         cmd = cmd .. " cartel"
     end
 
-    send(cmd)
+    send(cmd, false)
 end
 
 function ui_find_best_profit()
@@ -177,7 +177,7 @@ function ui_find_best_profit()
     }
 
     -- Build list of all commodities
-    for _, commodity in ipairs(ui_commodities()) do
+    for _, commodity in ipairs(ui_commodities_load()) do
         table.insert(UI.trading.profit_search.commodities_to_search, commodity.name:lower())
     end
 
@@ -225,8 +225,8 @@ function ui_search_next_commodity()
     end
 
     -- Clear commerce data for this search
-    UI.trading.data = {}
-    UI.trading.current_commodity = commodity
+    UI.trading.data                = {}
+    UI.trading.current_commodity   = commodity
     UI.trading.last_line_was_price = false
 
     -- Send the search command
@@ -235,7 +235,7 @@ end
 
 function ui_process_profit_search_results()
     -- Calculate profit for current commodity
-    local best_buy = math.huge
+    local best_buy  = math.huge
     local best_sell = -1
 
     for _, item in ipairs(UI.trading.data) do
@@ -335,32 +335,3 @@ function ui_display_best_profit()
     UI.trading_window:cecho("<white>==========================================\n\n")
     UI.trading_window:cecho("<dim_grey>Click commodity name to view full cartel prices<reset>\n")
 end
-
--- Function to update UI based on cartel status
---function ui_updateCartelUI()
---  if UI.trading.cartel.active then
---    -- Show cartel-related buttons
---    UI.cartel_toggle_button:show()
---    UI.best_profit_button:show()
---    
---    -- Add tooltip with days remaining
---    local tooltip = string.format("Cartel Access Active (%d days remaining)", UI.trading.cartel.daysRemaining)
---    UI.cartel_toggle_button:setToolTip(tooltip)
---    UI.best_profit_button:setToolTip(tooltip)
---  else
---    -- Hide cartel-related buttons
---    UI.cartel_toggle_button:hide()
---    UI.best_profit_button:hide()
---    
---    -- Ensure cartel mode is off
---    UI.trading.use_cartel = false
---    
---    -- Stop any active profit search
---    if UI.trading.profit_search and UI.trading.profit_search.active then
---      UI.trading.profit_search.active = false
---      if UI.profit_progress_bar then
---        UI.profit_progress_bar:hide()
---      end
---    end
---  end
---end

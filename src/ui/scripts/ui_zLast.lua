@@ -54,6 +54,37 @@ function ui_update_for_rank()
     end
 end
 
+function ui_remote_access_status()
+    local remote_access = gmcp.char.vitals.tools and gmcp.char.vitals.tools["remote-access-cert"]
+
+    if remote_access and remote_access.days > 0 then
+      -- Show cartel-related buttons
+      UI.cartel_toggle_button:show()
+      UI.best_profit_button:show()
+      
+      -- Add tooltip with days remaining
+      local tooltip = string.format("Remote Access Active (%d days remaining)", remote_access.days)
+
+      UI.cartel_toggle_button:setToolTip(tooltip)
+      UI.best_profit_button:setToolTip(tooltip)
+    else
+      -- Hide cartel-related buttons
+      UI.cartel_toggle_button:hide()
+      UI.best_profit_button:hide()
+      
+      -- Ensure cartel mode is off
+      UI.trading.use_cartel = false
+      
+      -- Stop any active profit search
+      if UI.trading.profit_search and UI.trading.profit_search.active then
+        UI.trading.profit_search.active = false
+        if UI.profit_progress_bar then
+          UI.profit_progress_bar:hide()
+        end
+      end
+    end
+end
+
 function ui_build()
     ui_create_containers()
     ui_build_tabs()
@@ -67,30 +98,53 @@ function ui_build()
     ui_update_for_rank()
     ui_update_header()
 
+    ui_built = true
     f2t_debug_log("[ui] ui_build finished")
 end
 
-function ui_event_register()
+function ui_register_trigger()
+    f2t_ui_register_trigger("checkPriceCartelData")
+    f2t_ui_register_trigger("checkPriceCartelPrint")
+    f2t_ui_register_trigger("echoExchange")
+    f2t_ui_register_trigger("echoExchangeBuy")
+    f2t_ui_register_trigger("echoExchangeQuantity")
+    f2t_ui_register_trigger("echoExchangeSell")
+    f2t_ui_register_trigger("findBestProfitHide")
+    f2t_ui_register_trigger("haulingJob")
+    f2t_ui_register_trigger("haulingStart")
+    f2t_ui_register_trigger("spynetReport")
+
+    ui_triggered = true
+    f2t_debug_log("[ui] registered triggers")
+end
+
+function ui_register_alias()
+    f2t_ui_register_alias("echoSendChat")
+    f2t_ui_register_alias("echoSendTell")
+
+    ui_aliased = true
+    f2t_debug_log("[ui] registered aliases")
+end
+
+function ui_register_event()
     f2t_ui_register_event("AdjustableContainerRepositionFinish", "ui_on_container_reposition")
     f2t_ui_register_event("sysWindowResizeEvent"               , "ui_on_window_resize")
     f2t_ui_register_event("gmcp.char"                          , "ui_update_header")
     f2t_ui_register_event("gmcp.room.info"                     , "ui_on_gmcp_room_info")
     f2t_ui_register_event("gmcp.char.ship.cargo"               , "ui_cargo")
+    f2t_ui_register_event("gmcp.char.vitals.tools"             , "ui_remote_access_status")
     f2t_ui_register_event("gmcp.comm.com"                      , "ui_echo_com")
     f2t_ui_register_event("gmcp.comm.tell"                     , "ui_echo_tell")
     f2t_ui_register_event("gmcp.comm.say"                      , "ui_echo_say")
 
-    f2t_debug_log("[ui] event handlers registered")
+    ui_evented = true
+    f2t_debug_log("[ui] registered events")
 end
 
 -- If UI is enabled, kick everything off
 if F2T_UI_STATE.enabled then
-    if not ui_built then 
-        ui_build()
-        ui_built = true
-    end
-    if not ui_evented then 
-        ui_event_register()
-        ui_evented = true
-    end
+    if not ui_built     then ui_build()            end
+    if not ui_triggered then ui_register_trigger() end
+    if not ui_evented   then ui_register_event()   end
+    if not ui_aliased   then ui_register_alias()   end
 end

@@ -3,5 +3,5 @@
 --     type: regex
 f2t_ui_register_trigger("haulingJob")
 
-onHaulingJob(matches[2], matches[3], matches[4], matches[5], matches[6])
+ui_on_hauling_job(matches[2], matches[3], matches[4], matches[5], matches[6])
 deleteLine()
