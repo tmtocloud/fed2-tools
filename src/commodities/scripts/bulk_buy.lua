@@ -166,6 +166,12 @@ function f2t_bulk_buy_finish()
 
     f2t_debug_log("[bulk-buy] Finishing: bought %d lots of %s (%d tons)", bought, commodity, tons)
 
+    -- Reset state BEFORE callback to prevent re-entrant state corruption
+    -- (callback may synchronously start a new bulk operation)
+    F2T_BULK_STATE.active = false
+    F2T_BULK_STATE.command = nil
+    F2T_BULK_STATE.callback = nil
+
     -- User mode: show formatted output
     if not callback then
         cecho(string.format("\n<green>[bulk-buy]<reset> Complete: Bought %d lots of %s (%d tons)\n",
@@ -176,9 +182,4 @@ function f2t_bulk_buy_finish()
         local status = bought > 0 and "success" or "failed"
         callback(commodity, bought, status, nil)
     end
-
-    -- Reset state
-    F2T_BULK_STATE.active = false
-    F2T_BULK_STATE.command = nil
-    F2T_BULK_STATE.callback = nil
 end

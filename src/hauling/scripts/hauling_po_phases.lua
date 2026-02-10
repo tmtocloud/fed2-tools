@@ -218,11 +218,7 @@ function f2t_hauling_phase_po_navigate_to_buy()
         f2t_hauling_phase_po_next_job()
     elseif nav_result == true and not F2T_SPEEDWALK_ACTIVE then
         f2t_debug_log("[hauling/po] Already at buy location")
-        tempTimer(0.5, function()
-            if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused then
-                f2t_hauling_transition("po_buying")
-            end
-        end)
+        f2t_hauling_transition("po_buying")
     end
 end
 
@@ -346,11 +342,9 @@ function f2t_hauling_phase_po_bundled_buy_navigate()
         f2t_debug_log("[hauling/po] Bundled buy navigation failed, proceeding to sell")
         f2t_hauling_transition("po_navigating_to_sell")
     elseif nav_result == true and not F2T_SPEEDWALK_ACTIVE then
-        tempTimer(0.5, function()
-            if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused then
-                f2t_hauling_phase_po_bundled_buy()
-            end
-        end)
+        -- Set phase to prevent GMCP handler re-entry during async buy
+        F2T_HAULING_STATE.current_phase = "po_buying"
+        f2t_hauling_phase_po_bundled_buy()
     end
 end
 
@@ -414,11 +408,7 @@ function f2t_hauling_phase_po_navigate_to_sell()
         f2t_hauling_phase_po_next_job()
     elseif nav_result == true and not F2T_SPEEDWALK_ACTIVE then
         f2t_debug_log("[hauling/po] Already at sell location")
-        tempTimer(0.5, function()
-            if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused then
-                f2t_hauling_transition("po_selling")
-            end
-        end)
+        f2t_hauling_transition("po_selling")
     end
 end
 

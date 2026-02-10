@@ -751,26 +751,27 @@ f2t_settings_get("shared", "food_source")  -- default: "Sol.Earth.454"
 
 ### Client Registration
 
-Components that need stamina monitoring must register with the system:
+Components that need stamina monitoring must register when they **start** and unregister when they **stop**:
 
 ```lua
--- In component init.lua
+-- In component start function (NOT init.lua)
 f2t_stamina_register_client({
     pause_callback = function()
         -- Pause your component's activity
-        -- Example: F2T_HAULING_STATE.paused = true
     end,
 
     resume_callback = function()
         -- Resume your component's activity
-        -- Example: F2T_HAULING_STATE.paused = false
     end,
 
     check_active = function()
         -- Return true if component is actively running
-        -- Example: return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+        return MY_STATE.active and not MY_STATE.paused
     end
 })
+
+-- In component stop function
+f2t_stamina_unregister_client()
 ```
 
 **Callback Requirements**:
@@ -782,10 +783,12 @@ f2t_stamina_register_client({
   - If `false`, stamina monitor uses standalone mode (y/n prompt)
 
 **Integration Pattern**:
-1. Register callbacks once at component init (not at start)
-2. `check_active()` gates whether callbacks are used
-3. Multiple components can register; only active ones are paused
-4. Last registration overwrites previous (single-client model for now)
+1. Register at component **start**, unregister at component **stop**
+2. Only the running component should be registered (single-client model)
+3. `check_active()` gates whether callbacks are used
+4. When no client is registered, stamina monitor uses standalone mode (y/n prompt)
+
+**IMPORTANT**: Do NOT register at load time (in init.lua). Since it's a single-client model, the last registration wins. If multiple components register at load time, only the last one loaded (alphabetically) will work.
 
 ### Monitoring Control
 
@@ -854,18 +857,7 @@ When no component is active and stamina drops below threshold:
 ### Integration Example (Hauling Component)
 
 ```lua
--- src/hauling/scripts/init.lua
-
--- Register with stamina monitor (once at init)
-f2t_stamina_register_client({
-    pause_callback = f2t_hauling_pause,
-    resume_callback = f2t_hauling_resume,
-    check_active = function()
-        return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
-    end
-})
-
--- src/hauling/scripts/state_machine.lua
+-- src/hauling/scripts/hauling_state_machine.lua
 
 function f2t_hauling_start()
     -- ... setup code ...
@@ -875,14 +867,23 @@ function f2t_hauling_start()
         f2t_stamina_cancel_standalone_prompt()
     end
 
+    -- Register with stamina monitor for this session
+    f2t_stamina_register_client({
+        pause_callback = f2t_hauling_pause,
+        resume_callback = f2t_hauling_resume,
+        check_active = function()
+            return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+        end
+    })
+
     -- ... continue with hauling ...
 end
 
-function f2t_hauling_do_stop()
+function f2t_hauling_finish_stop()
     -- ... cleanup code ...
 
-    -- Note: Stamina monitoring continues running (always-on mode)
-    -- It will revert to standalone prompt mode now that hauling is inactive
+    -- Unregister from stamina monitor (monitoring continues in standalone mode)
+    f2t_stamina_unregister_client()
 
     -- ... reset state ...
 end

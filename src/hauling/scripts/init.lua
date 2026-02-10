@@ -149,13 +149,4 @@ f2t_settings_register("hauling", "po_mode", {
     end
 })
 
--- Register with stamina monitor for automatic food buying during hauling
-f2t_stamina_register_client({
-    pause_callback = f2t_hauling_pause,
-    resume_callback = f2t_hauling_resume,
-    check_active = function()
-        return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
-    end
-})
-
-f2t_debug_log("[hauling] Component initialized (stamina monitoring enabled)")
+f2t_debug_log("[hauling] Component initialized")

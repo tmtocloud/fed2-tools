@@ -50,6 +50,15 @@ function f2t_hauling_start(requested_mode)
         f2t_stamina_cancel_standalone_prompt()
     end
 
+    -- Register with stamina monitor for this session
+    f2t_stamina_register_client({
+        pause_callback = f2t_hauling_pause,
+        resume_callback = f2t_hauling_resume,
+        check_active = function()
+            return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+        end
+    })
+
     -- NOTE: Don't start completion timer yet - it will be started when entering buying/selling phase
 
     -- Detect which hauling mode to use based on rank
@@ -294,8 +303,8 @@ function f2t_hauling_finish_stop()
         f2t_debug_log("[hauling] Cleaned up event handlers for mode: %s", F2T_HAULING_STATE.mode or "unknown")
     end
 
-    -- Note: Stamina monitoring continues running (always-on mode)
-    -- It will revert to standalone prompt mode now that hauling is inactive
+    -- Unregister from stamina monitor (monitoring continues in standalone mode)
+    f2t_stamina_unregister_client()
 
     -- Cancel any active price all operation
     if f2t_price_cancel_all and f2t_price_cancel_all() then
