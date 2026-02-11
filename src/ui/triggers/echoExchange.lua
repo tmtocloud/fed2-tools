@@ -13,7 +13,7 @@ for _, commodity in ipairs(commodities) do
     if commodity.name == matches[2] then base_price = commodity.basePrice end
 end
 
-UI.overflow_window:echo("+++\n")
-UI.overflow_window:cecho('<ansiYellow>' .. matches[2] .. ' (base ' .. base_price ..'):\n')
+UI.exchange_window:echo("+++\n")
+UI.exchange_window:cecho('<ansiYellow>' .. matches[2] .. ' (base ' .. base_price ..'):\n')
 deleteLine()
 tempLineTrigger(1,1, [[if getCurrentLine() == "" then deleteLine() end]]) --if the following line is blank, delete it

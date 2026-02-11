@@ -6,6 +6,6 @@ f2t_ui_register_trigger("echoExchangeSell")
 --puts the selling price (matches[2]) into exchange window
 --matches[3] is the ig/ton that usually follows the price
 --matches[4] is the amount they're willing to sell, but this should always be 75 tons?
-UI.overflow_window:cecho('<ansiYellow>Selling at: ' .. matches[2] ..'\n')
+UI.exchange_window:cecho('<ansiYellow>Selling at: ' .. matches[2] ..'\n')
 deleteLine()
 tempLineTrigger(1,1, [[if getCurrentLine() == "" then deleteLine() end]]) --if the following line is blank, delete it

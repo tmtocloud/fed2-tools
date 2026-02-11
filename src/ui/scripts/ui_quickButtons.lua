@@ -53,13 +53,13 @@ function ui_build_quick_buttons()
 end
 
 function ui_buy_fuel()
-  send("buy fuel", false)
+    send("buy fuel", false)
 end
 
 function ui_score()
-  send("score", false)
+    send("score", false)
 end
 
 function ui_status()
-  send("status", false)
+    send("status", false)
 end

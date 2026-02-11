@@ -1,4 +1,151 @@
+-- =============================================================================
+-- INITIALIZE TRADING TABLE
+-- =============================================================================
+
+function ui_trading_init()
+    -- Define columns for trading data
+    local trading_columns = {
+        {
+            key = "system",
+            label = "System",
+            width = 10,
+            align = "left",
+            header_align = "center",
+            sortable = true,
+            format = function(value) return "<white>" .. value .. "<reset>" end,
+            link = function(value) expandAlias("nav " .. value .. " space link") end,
+            linkHint = "Jump to %s",
+            sort_value = function(row) return row.system:lower() end
+        },
+        {
+            key = "planet",
+            label = "Planet",
+            width = 10,
+            align = "left",
+            header_align = "center",
+            sortable = true,
+            format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+            link = function(value, row) 
+                send("whereis " .. row.planet, false)
+                expandAlias("nav " .. row.planet)
+            end,
+            linkHint = "Go to %s",
+            sort_value = function(row) return row.planet:lower() end
+        },
+        {
+            key = "action",
+            label = "Action",
+            width = 6,
+            align = "center",
+            header_align = "center",
+            sortable = true,
+            format = function(value, row)
+                if value == "buying" then
+                    return "<green>[SELL]<reset>"
+                else
+                    return "<yellow>[BUY]<reset>"
+                end
+            end,
+            link = function(value, row)
+                local cmd = (value == "buying") and "sell " or "buy "
+                send(cmd .. (UI.trading.current_commodity or ""))
+            end,
+            sort_value = function(row) return row.action end
+        },
+        {
+            key = "quantity",
+            label = "Qty",
+            width = 6,
+            align = "right",
+            header_align = "center",
+            sortable = true,
+            format = function(value) return "<white>" .. value .. "<reset>" end,
+            sort_value = function(row) return row.quantity end
+        },
+        {
+            key = "price",
+            label = "Price",
+            width = 8,
+            align = "right",
+            header_align = "center",
+            sortable = true,
+            default_sort = "asc",
+            format = function(value, row)
+                -- Dynamically calculate best prices from current table data
+                local tbl = UI.tables["trading_data"]
+                if not tbl then return "<white>" .. value .. "ig<reset>" end
+                
+                local best_buy = math.huge
+                local best_sell = -1
+                
+                for _, r in ipairs(tbl.data) do
+                    if r.action == "selling" and r.price < best_buy then
+                        best_buy = r.price
+                    elseif r.action == "buying" and r.price > best_sell then
+                        best_sell = r.price
+                    end
+                end
+                
+                local price_str = value .. "ig"
+                -- Highlight best prices
+                if (row.action == "selling" and row.price == best_buy) then
+                    return "<yellow><b>" .. price_str .. "</b><reset>"
+                elseif (row.action == "buying" and row.price == best_sell) then
+                    return "<green><b>" .. price_str .. "</b><reset>"
+                else
+                    return "<white>" .. price_str .. "<reset>"
+                end
+            end,
+            sort_value = function(row) return row.price end
+        }
+    }
+    
+    local separators = {
+        column = " ",
+        header = nil,
+        row = nil
+    }
+    
+    -- Create the table
+    ui_table_create("trading_data", UI.trading_window, trading_columns, separators)
+end
+
+-- =============================================================================
+-- Trading Trigger Function
+-- =============================================================================
+
+-- Handler for trading data lines
+function ui_on_trading_line(system, planet, action, quantity, price)
+    local trade_data = {
+        system = system,
+        planet = planet,
+        action = action,
+        quantity = tonumber(quantity),
+        price = tonumber(price)
+    }
+    
+    -- If in profit search mode, store for processing
+    if UI.trading.profit_search and UI.trading.profit_search.active then
+        UI.trading.data = UI.trading.data or {}
+        table.insert(UI.trading.data, trade_data)
+    else
+        -- Add to table and render
+        local tbl = UI.tables["trading_data"]
+        if tbl then
+            table.insert(tbl.data, trade_data)
+            ui_table_render("trading_data")
+        end
+    end
+end
+
+-- =============================================================================
+-- TRADING UI ELEMENTS
+-- =============================================================================
+
 function ui_trading()
+    -- Initialize the trading table system
+    ui_trading_init()
+    
     ------------- Trading Commodity Dropdown ---------------
     UI.trading_drop_down_button = Geyser.Label:new(
         {
@@ -36,7 +183,6 @@ function ui_trading()
     UI.trading = {
         selected_commodity = nil,
         use_cartel         = true,
-        -- Initialize profit search state
         profit_search      = {
             active                = false,
             commodities_to_search = {},
@@ -57,9 +203,6 @@ function ui_trading()
     )
     UI.best_profit_button:setStyleSheet(UI.style.button_css)
     UI.best_profit_button:setClickCallback("ui_find_best_profit")
-
-    -- Check to see if user has cartel price checking
-    --ui_check_cartel_status()
 end
 
 -- Responsible for formatting and displaying the commodity dropdown
@@ -151,18 +294,21 @@ function ui_check_price()
     local cmd = "c price " .. UI.trading.selected_commodity:lower()
 
     if UI.trading.use_cartel then
-        UI.trading                     = UI.trading or {}
-        UI.trading.current_commodity   = UI.trading.selected_commodity:lower()
-        UI.trading.data                = {}
-        UI.trading.last_line_was_price = false
-
-        UI.trading_window:clear()
-
+        UI.trading = UI.trading or {}
+        UI.trading.current_commodity = UI.trading.selected_commodity:lower()
+        
+        -- Clear the table instead of manual window clear
+        ui_table_clear("trading_data")
+        
         cmd = cmd .. " cartel"
     end
 
     send(cmd, false)
 end
+
+-- =============================================================================
+-- FIND BEST PROFIT FUNCTIONS
+-- =============================================================================
 
 function ui_find_best_profit()
     -- Clear previous results
@@ -224,10 +370,9 @@ function ui_search_next_commodity()
         return
     end
 
-    -- Clear commerce data for this search
-    UI.trading.data                = {}
-    UI.trading.current_commodity   = commodity
-    UI.trading.last_line_was_price = false
+    -- Clear data for this search
+    UI.trading.data = {}
+    UI.trading.current_commodity = commodity
 
     -- Send the search command
     send("c price " .. commodity:lower() .. " cartel", false)

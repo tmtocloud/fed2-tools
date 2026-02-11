@@ -23,7 +23,7 @@ function ui_build_tabs()
       UI.right_frame
   )
 
-  -- Place Overflow/Commodities tabs In Top Left Navigation Frame (default location)
+  -- Place Exchange/Commodities tabs In Top Left Navigation Frame (default location)
   UI.tab_top_left = Adjustable.TabWindow:new(
     {
       name             = "UI.tab_left",
@@ -32,7 +32,7 @@ function ui_build_tabs()
       width            = "100%",
       height           = "100%",
       tabBarHeight     = "8%",
-      tabs             = {"Overflow", "Commodities"},
+      tabs             = {"Exchange", "Commodities"},
       activeTabStyle   = UI.style.active_tab_css,
       inactiveTabStyle = UI.style.inactive_tab_css,
       footerStyle      = UI.style.footer_css,
@@ -41,7 +41,7 @@ function ui_build_tabs()
     UI.vbox_left
   )
 
-  -- Place Comms tab on the top of the Bottom Left Navigation Frame (default location)
+  -- Place Spynet/Comms tab on the top of the Bottom Left Navigation Frame (default location)
   UI.tab_bottom_left = Adjustable.TabWindow:new(
     {
       name             = "UI.tab_bottom_left",
@@ -50,7 +50,7 @@ function ui_build_tabs()
       width            = "100%",
       height           = "100%",
       tabBarHeight     = "8%",
-      tabs             = {"Comm"},
+      tabs             = {"Spynet","Comm"},
       activeTabStyle   = UI.style.active_tab_css,
       inactiveTabStyle = UI.style.inactive_tab_css,
       footerStyle      = UI.style.footer_css,
@@ -86,7 +86,7 @@ function ui_build_tabs()
       width            = "100%",
       height           = "100%",
       tabBarHeight     = "8%",
-      tabs             = {"Cargo","Hauling","Trading"},
+      tabs             = {"Hauling","Trading"},
       activeTabStyle   = UI.style.active_tab_css,
       inactiveTabStyle = UI.style.inactive_tab_css,
       footerStyle      = UI.style.footer_css,
@@ -100,10 +100,10 @@ end
 function ui_build_tab_content()
   local text_size = 12
 
-  --put overflow console in overflow tab
-  UI.overflow_window = Geyser.MiniConsole:new(
+  --put Exchange console in Exchange tab
+  UI.exchange_window = Geyser.MiniConsole:new(
     {
-      name      = "UI.overflow_window",
+      name      = "UI.exchange_window",
       x         = "0%",
       y         = "0%",
       width     = "100%",
@@ -113,8 +113,9 @@ function ui_build_tab_content()
       fontSize  = text_size,
       color     = "black",
     },
-    UI.tab_top_left.Overflowcenter
+    UI.tab_top_left.Exchangecenter
   )
+  UI.tab_top_left:removeTab("Exchange")
   
   --put commodities console in commodities tab
   UI.commodities_window = Geyser.MiniConsole:new(
@@ -131,7 +132,23 @@ function ui_build_tab_content()
     },
     UI.tab_top_left.Commoditiescenter
   )
-  
+
+  --put spynet console in spynet tab
+  UI.spynet_window = Geyser.MiniConsole:new(
+    {
+      name      = "UI.spynet_window",
+      x         = "0%",
+      y         = "0%",
+      width     = "100%",
+      height    = "100%",
+      autoWrap  = true,
+      scrollBar = false,
+      fontSize  = text_size,
+      color     = "black",
+    },
+    UI.tab_bottom_left.Spynetcenter
+  )
+
   --put chat console in chat tab
   UI.chat_window = Geyser.MiniConsole:new(
     {
@@ -159,22 +176,6 @@ function ui_build_tab_content()
     },
     UI.tab_top_right.fedmapcenter
   )
-
-  --put cargo console in cargo tab
-  UI.cargo_window = Geyser.MiniConsole:new(
-    {
-      name      = "UI.cargo_window",
-      x         = "0%",
-      y         = "0%",
-      width     = "100%",
-      height    = "100%",
-      autoWrap  = true,
-      scrollBar = false,
-      fontSize  = text_size,
-      color     = "black",
-    },
-    UI.tab_bottom_right.Cargocenter
-  )
   
   --put hauling container in hauling tab
   UI.hauling_container = Geyser.Container:new(
@@ -200,7 +201,6 @@ function ui_build_tab_content()
     UI.hauling_container
   )
   
-  -- Cargo display window below button bar
   UI.hauling_window = Geyser.MiniConsole:new(
     {
       name      = "UI.hauling_window",

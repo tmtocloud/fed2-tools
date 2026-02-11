@@ -4,6 +4,6 @@
 f2t_ui_register_trigger("echoExchangeQuantity")
 
 --puts the amount available into exchange window
-UI.overflow_window:cecho('<ansiYellow>Available: ' .. matches[2] ..'\n')
+UI.exchange_window:cecho('<ansiYellow>Available: ' .. matches[2] ..'\n')
 deleteLine()
 tempLineTrigger(1,1, [[if getCurrentLine() == "" then deleteLine() end]]) --if the following line is blank, delete it

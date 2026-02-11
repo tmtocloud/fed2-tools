@@ -7,6 +7,12 @@ function ui_on_gmcp_room_info()
         table.insert(exits, exit:lower())
     end
 
+    if f2t_has_value(gmcp.room.info.flags, "exchange") then
+        UI.tab_top_left:addTab("Exchange", 1)
+    else
+        UI.tab_top_left:removeTab("Exchange")
+    end
+
     -- Detect shuttlepad or orbit and add board to valid exits
     if f2t_has_value(gmcp.room.info.flags, "shuttlepad") or f2t_has_value(gmcp.room.info.flags, "orbit") or gmcp.room.info.orbit then table.insert(exits, "board") end
 
@@ -33,7 +39,7 @@ end
 function ui_update_for_rank()
     if f2t_is_rank_or_above("Commander") then
         if not f2t_has_value(UI.tab_bottom_right.tabs, "Hauling") then
-            UI.tab_bottom_right:addTab("Hauling", 2)
+            UI.tab_bottom_right:addTab("Hauling", 1)
         end
 
         UI.button_status:show()
@@ -47,7 +53,7 @@ function ui_update_for_rank()
     -- Trading: only rank 4+
     if f2t_is_rank_or_above("Merchant") then
         if not f2t_has_value(UI.tab_bottom_right.tabs, "Trading") then
-            UI.tab_bottom_right:addTab("Trading", 3)
+            UI.tab_bottom_right:addTab("Trading", 2)
         end
     else
         UI.tab_bottom_right:removeTab("Trading")
