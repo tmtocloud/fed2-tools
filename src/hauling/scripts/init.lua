@@ -5,6 +5,7 @@
 F2T_HAULING_STATE = {
     active = false,
     paused = false,
+    pause_requested = false, -- Deferred pause: set by user, converted to paused at next phase boundary
     paused_room_id = nil, -- Room ID where hauling was paused (for location validation on resume)
     stopping = false,     -- Graceful stop requested (finish current cycle)
     mode = nil,           -- Current hauling mode: "ac", "akaturi", "exchange"

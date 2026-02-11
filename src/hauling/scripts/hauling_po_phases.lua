@@ -14,6 +14,8 @@ local function po_cycle_pause_and_rescan(message)
     local safe_room = f2t_settings_get("shared", "safe_room")
 
     if cycle_pause > 0 then
+        F2T_HAULING_STATE.current_phase = "cycle_pausing"
+
         if use_safe_room and safe_room and safe_room ~= "" then
             cecho(string.format("\n<green>[hauling/po]<reset> %s, going to safe room for <yellow>%d seconds<reset>...\n",
                 message, cycle_pause))
@@ -22,8 +24,11 @@ local function po_cycle_pause_and_rescan(message)
 
             -- Navigation will complete well within the cycle pause window
             tempTimer(cycle_pause, function()
-                if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused then
-                    cecho("\n<green>[hauling/po]<reset> Pause complete, re-scanning...\n")
+                if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+                    and F2T_HAULING_STATE.current_phase == "cycle_pausing" then
+                    if not F2T_HAULING_STATE.pause_requested then
+                        cecho("\n<green>[hauling/po]<reset> Pause complete, re-scanning...\n")
+                    end
                     f2t_hauling_transition("po_scanning_system")
                 end
             end)
@@ -31,7 +36,8 @@ local function po_cycle_pause_and_rescan(message)
             cecho(string.format("\n<green>[hauling/po]<reset> %s, pausing for <yellow>%d seconds<reset> before re-scanning...\n",
                 message, cycle_pause))
             tempTimer(cycle_pause, function()
-                if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused then
+                if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+                    and F2T_HAULING_STATE.current_phase == "cycle_pausing" then
                     f2t_hauling_transition("po_scanning_system")
                 end
             end)
@@ -147,6 +153,16 @@ end
 --- Advance to next job in queue or cycle back to scanning
 function f2t_hauling_phase_po_next_job()
     if not F2T_HAULING_STATE.active or F2T_HAULING_STATE.paused then
+        return
+    end
+
+    -- Deferred pause: pause between PO jobs
+    if F2T_HAULING_STATE.pause_requested then
+        F2T_HAULING_STATE.pause_requested = false
+        F2T_HAULING_STATE.paused = true
+        F2T_HAULING_STATE.current_phase = "po_next_job"
+        cecho("\n<green>[hauling/po]<reset> Paused between jobs\n")
+        f2t_debug_log("[hauling/po] Deferred pause activated between jobs")
         return
     end
 
