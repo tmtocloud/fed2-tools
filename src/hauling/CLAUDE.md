@@ -45,7 +45,7 @@ Automated hauling that adapts based on player rank:
 - Automatically stops at 25 points (ready for rank advancement)
 
 ### Common
-- Supports pause/resume/stop controls
+- Supports pause/resume/stop controls with **deferred pause** (completes current operation before pausing)
 - Rank-aware: automatically detects and uses appropriate mode for your rank
 
 ## Commands
@@ -59,9 +59,18 @@ haul stop             # Stop and reset state
 
 ### Pause/Resume
 ```
-haul pause     # Pause at current step
-haul resume    # Continue from pause
+haul pause     # Deferred pause: completes current operation, pauses at next phase boundary
+haul resume    # Continue from pause (or cancel pending pause request)
+haul terminate # Immediate stop (does not wait for current operation)
 ```
+
+**Deferred Pause:** When you run `haul pause` (or stamina monitor triggers), the system sets a `pause_requested` flag instead of immediately pausing. Async callbacks continue running (their guards check `paused`, which is still false). At the next phase boundary (`f2t_hauling_transition()` or mode-specific boundary functions), the request converts to actual `paused = true`. This prevents broken async chains and wasted re-scanning on resume.
+
+**Stamina Monitor Pause:** The stamina monitor also uses deferred pause. After requesting pause, it waits (polls `check_active()`) until the current operation completes and hauling actually pauses. Only then does it take over navigation to the food source.
+
+**Immediate Pause:** The `immediate` parameter on `f2t_hauling_pause(true)` is reserved for system-initiated pauses that need to stop immediately (e.g., Akaturi mode's "manual room finding" when no room match is found).
+
+**Status shows:** `RUNNING`, `PAUSING...` (deferred pending), or `PAUSED`.
 
 ### Status
 ```
@@ -280,6 +289,7 @@ F2T_HAULING_STATE = {
     -- Common
     active = false,                 -- Whether hauling is running
     paused = false,                 -- Whether hauling is paused
+    pause_requested = false,        -- Deferred pause: set by user, converted to paused at next phase boundary
     mode = nil,                     -- Current mode: "ac", "akaturi", "exchange"
     current_phase = nil,            -- Current phase name
     handler_id = nil,               -- GMCP event handler ID for current mode
