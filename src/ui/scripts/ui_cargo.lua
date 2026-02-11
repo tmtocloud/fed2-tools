@@ -1,14 +1,3 @@
--- Called when cargo updates (GMCP event)
-function ui_cargo()
-    -- Update the cargo dropdown display if it's currently visible
-    if UI.cargo_display_visible and UI.cargo_dropdown then
-        ui_update_cargo_display()
-    end
-
-    -- Also update header to show/hide cargo indicator
-    ui_update_header()
-end
-
 function ui_toggle_cargo_display()
     -- Don't toggle if there's no cargo
     local ship  = gmcp.char and gmcp.char.ship
@@ -177,7 +166,6 @@ function ui_update_cargo_display()
             buttons.deliver:setStyleSheet(UI.style.button_css)
             buttons.deliver:setClickCallback(function()
                 send("deliver", false)
-                ui_update_cargo_display()
             end)
         else
             -- Two buttons: Check Price and Sell
@@ -205,14 +193,13 @@ function ui_update_cargo_display()
             buttons.sell:setStyleSheet(UI.style.button_css)
             buttons.sell:setClickCallback(function()
                 send("sell " .. (value.commodity or ""):lower(), false)
-                ui_update_cargo_display()
             end)
         end
 
         table.insert(UI.cargo_buttons, buttons)
 
         -- Move to next entry position
-        y_position = y_position + entry_height
+        y_position = y_position + entry_height - 15
 
         -- Add separator line between entries (but not after last one)
         if entry_num < cargo_count then

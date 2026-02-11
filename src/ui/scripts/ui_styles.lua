@@ -207,3 +207,39 @@ UI.style.toggle_button_css = [[
         color: white;
     }
 ]]
+
+UI.style.cargo_gap_filler_css = [[
+    background-color: rgba(255,255,255,0.035);
+    border-left: 2px solid rgba(255,255,255,0.46);
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    padding: 1px;
+    margin: 0px;
+    box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 10px 30px rgba(0,0,0,0.6),
+    0 0 18px rgba(255,255,255,0.02);
+    transition: transform 120ms ease, box-shadow 160ms ease, border-color 120ms ease, background 120ms ease;
+    color: rgba(255,255,255,0.95);
+    -webkit-backdrop-filter: blur(4px) saturate(110%);
+    backdrop-filter: blur(4px) saturate(110%);
+]]
+
+UI.style.cargo_dropdown_css = [[
+    background-color: rgba(255,255,255,0.035);
+    border-left: 2px solid rgba(255,255,255,0.46);
+    border-right: 2px solid rgba(255,255,255,0.46);
+    border-bottom: 2px solid rgba(255,255,255,0.46);
+    border-top: none;
+    padding: 1px;
+    margin: 0px;
+    box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    0 10px 30px rgba(0,0,0,0.6),
+    0 0 18px rgba(255,255,255,0.02);
+    transition: transform 120ms ease, box-shadow 160ms ease, border-color 120ms ease, background 120ms ease;
+    color: rgba(255,255,255,0.95);
+    -webkit-backdrop-filter: blur(4px) saturate(110%);
+    backdrop-filter: blur(4px) saturate(110%);
+]]

@@ -145,6 +145,8 @@ function ui_update_header()
         if has_cargo and not UI.cargo_manually_hidden then
             if not UI.cargo_display_visible then
                 ui_show_cargo_display()
+            else
+                ui_update_cargo_display()
             end
         elseif not has_cargo and UI.cargo_display_visible then
             -- Auto-hide when cargo is empty
