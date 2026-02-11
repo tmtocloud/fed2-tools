@@ -667,6 +667,15 @@ function f2t_map_explore_start(mode, name)
         return { auto_resume = true }
     end)
 
+    -- Register with stamina monitor for this session
+    f2t_stamina_register_client({
+        pause_callback = f2t_map_explore_pause,
+        resume_callback = f2t_map_explore_resume,
+        check_active = function()
+            return F2T_MAP_EXPLORE_STATE.active and not F2T_MAP_EXPLORE_STATE.paused
+        end
+    })
+
     -- ========================================
     -- Context-Aware Routing
     -- ========================================
@@ -835,8 +844,8 @@ function f2t_map_explore_stop()
     -- Clear navigation ownership
     f2t_map_clear_nav_owner()
 
-    -- Stop stamina monitoring
-    f2t_stamina_stop_monitoring()
+    -- Unregister from stamina monitor (monitoring continues in standalone mode)
+    f2t_stamina_unregister_client()
 
     -- Unlock temporarily locked exits
     f2t_map_explore_unlock_temp_exits()
@@ -1127,8 +1136,8 @@ function f2t_map_explore_complete()
         return
     end
 
-    -- Stop stamina monitoring
-    f2t_stamina_stop_monitoring()
+    -- Unregister from stamina monitor (monitoring continues in standalone mode)
+    f2t_stamina_unregister_client()
 
     -- Unlock temporarily locked exits
     f2t_map_explore_unlock_temp_exits()
@@ -1676,17 +1685,5 @@ function f2t_map_explore_on_room_change()
         end
     end
 end
-
--- ========================================
--- Register with Stamina Monitor
--- ========================================
-
-f2t_stamina_register_client({
-    pause_callback = f2t_map_explore_pause,
-    resume_callback = f2t_map_explore_resume,
-    check_active = function()
-        return F2T_MAP_EXPLORE_STATE.active and not F2T_MAP_EXPLORE_STATE.paused
-    end
-})
 
 f2t_debug_log("[map] Loaded map_explore.lua")

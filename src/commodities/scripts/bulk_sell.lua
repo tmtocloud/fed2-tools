@@ -1,4 +1,4 @@
--- Bulk sell logic for f2t-bulk-commands
+-- Bulk sell logic for commodities component
 
 -- Count how many lots of a commodity are in the cargo hold
 local function count_cargo_lots(commodity)
@@ -315,23 +315,38 @@ function f2t_bulk_sell_finish()
 
     f2t_debug_log("[bulk-sell] Finishing: sold %d lots of %s (%d tons)", sold, commodity, tons)
 
+    -- Capture margin data before reset
+    local total_cost = F2T_BULK_STATE.total_cost or 0
+    local total_revenue = F2T_BULK_STATE.total_revenue or 0
+    local lots_sold_count = F2T_BULK_STATE.lots_sold or 0
+    local total_lots = F2T_BULK_STATE.total or 0
+
+    -- Reset state BEFORE callback to prevent re-entrant state corruption
+    -- (callback may synchronously start a new bulk operation)
+    F2T_BULK_STATE.active = false
+    F2T_BULK_STATE.command = nil
+    F2T_BULK_STATE.callback = nil
+    F2T_BULK_STATE.total_cost = 0
+    F2T_BULK_STATE.total_revenue = 0
+    F2T_BULK_STATE.lots_sold = 0
+
     -- User mode: show formatted output with margin info
     if not callback then
         local msg = string.format("\n<green>[bulk-sell]<reset> Complete: Sold %d lots of %s (%d tons)",
             sold, commodity, tons)
 
         -- Calculate and display margin if we have cost and revenue data
-        if F2T_BULK_STATE.total_cost > 0 and F2T_BULK_STATE.total_revenue > 0 and F2T_BULK_STATE.lots_sold > 0 then
+        if total_cost > 0 and total_revenue > 0 and lots_sold_count > 0 then
             -- Scale cost proportionally: total_cost is for all lots in cargo, but we may have sold fewer
             -- Cost per lot = total_cost / total, then multiply by lots_sold
-            local cost_per_lot = F2T_BULK_STATE.total_cost / F2T_BULK_STATE.total
-            local cost = cost_per_lot * F2T_BULK_STATE.lots_sold
-            local revenue = F2T_BULK_STATE.total_revenue
+            local cost_per_lot = total_cost / total_lots
+            local cost = cost_per_lot * lots_sold_count
+            local revenue = total_revenue
             local profit = revenue - cost
             local margin_pct = (profit / cost) * 100
 
-            local avg_cost_per_ton = math.floor(cost / (F2T_BULK_STATE.lots_sold * 75))
-            local avg_revenue_per_ton = math.floor(revenue / (F2T_BULK_STATE.lots_sold * 75))
+            local avg_cost_per_ton = math.floor(cost / (lots_sold_count * 75))
+            local avg_revenue_per_ton = math.floor(revenue / (lots_sold_count * 75))
 
             -- Color code margin
             local margin_color = "white"
@@ -359,14 +374,6 @@ function f2t_bulk_sell_finish()
         local status = sold > 0 and "success" or "failed"
         callback(commodity, sold, status, nil)
     end
-
-    -- Reset state
-    F2T_BULK_STATE.active = false
-    F2T_BULK_STATE.command = nil
-    F2T_BULK_STATE.callback = nil
-    F2T_BULK_STATE.total_cost = 0
-    F2T_BULK_STATE.total_revenue = 0
-    F2T_BULK_STATE.lots_sold = 0
 end
 
 -- Finish selling all commodities
@@ -386,6 +393,21 @@ function f2t_bulk_sell_finish_all()
     f2t_debug_log("[bulk-sell] Finishing all: sold %d lots (%d tons), %d lots remain",
         total_sold, total_tons, remaining_lots)
 
+    -- Capture aggregate data before reset
+    local agg_cost = F2T_BULK_STATE.aggregate_cost or 0
+    local agg_revenue = F2T_BULK_STATE.aggregate_revenue or 0
+    local agg_lots_sold = F2T_BULK_STATE.aggregate_lots_sold or 0
+
+    -- Reset state BEFORE callback to prevent re-entrant state corruption
+    -- (callback may synchronously start a new bulk operation)
+    F2T_BULK_STATE.active = false
+    F2T_BULK_STATE.command = nil
+    F2T_BULK_STATE.commodity_queue = nil
+    F2T_BULK_STATE.callback = nil
+    F2T_BULK_STATE.aggregate_cost = 0
+    F2T_BULK_STATE.aggregate_revenue = 0
+    F2T_BULK_STATE.aggregate_lots_sold = 0
+
     -- User mode: show formatted output
     if not callback then
         local msg
@@ -401,16 +423,12 @@ function f2t_bulk_sell_finish_all()
         end
 
         -- Calculate and display aggregate margin info
-        local cost = F2T_BULK_STATE.aggregate_cost or 0
-        local revenue = F2T_BULK_STATE.aggregate_revenue or 0
-        local lots_sold = F2T_BULK_STATE.aggregate_lots_sold or 0
+        if agg_cost > 0 and agg_revenue > 0 and agg_lots_sold > 0 then
+            local profit = agg_revenue - agg_cost
+            local margin_pct = (profit / agg_cost) * 100
 
-        if cost > 0 and revenue > 0 and lots_sold > 0 then
-            local profit = revenue - cost
-            local margin_pct = (profit / cost) * 100
-
-            local avg_cost_per_ton = math.floor(cost / (lots_sold * 75))
-            local avg_revenue_per_ton = math.floor(revenue / (lots_sold * 75))
+            local avg_cost_per_ton = math.floor(agg_cost / (agg_lots_sold * 75))
+            local avg_revenue_per_ton = math.floor(agg_revenue / (agg_lots_sold * 75))
 
             -- Color code margin
             local margin_color = "white"
@@ -426,7 +444,7 @@ function f2t_bulk_sell_finish_all()
             local profit_color = profit >= 0 and "green" or "red"
 
             msg = msg .. string.format("\n  <dim_grey>Cost: <white>%d ig<reset> <dim_grey>(%d ig/ton)<reset> | <dim_grey>Revenue: <white>%d ig<reset> <dim_grey>(%d ig/ton)<reset>",
-                cost, avg_cost_per_ton, revenue, avg_revenue_per_ton)
+                agg_cost, avg_cost_per_ton, agg_revenue, avg_revenue_per_ton)
             msg = msg .. string.format("\n  <dim_grey>Profit: <%s>%d ig<reset> | <dim_grey>Margin: <%s>%.1f%%<reset>",
                 profit_color, profit, margin_color, margin_pct)
         end
@@ -438,13 +456,4 @@ function f2t_bulk_sell_finish_all()
         local status = total_sold > 0 and "success" or "failed"
         callback(nil, total_sold, status, nil)
     end
-
-    -- Reset state
-    F2T_BULK_STATE.active = false
-    F2T_BULK_STATE.command = nil
-    F2T_BULK_STATE.commodity_queue = nil
-    F2T_BULK_STATE.callback = nil
-    F2T_BULK_STATE.aggregate_cost = 0
-    F2T_BULK_STATE.aggregate_revenue = 0
-    F2T_BULK_STATE.aggregate_lots_sold = 0
 end

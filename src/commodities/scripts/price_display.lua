@@ -143,7 +143,7 @@ function f2t_price_display_all(all_analysis)
                 field = "margin",
                 align = "right",
                 width = 7,
-                format = function(val)
+                formatter = function(val)
                     return string.format("%.1f%%", val)
                 end,
                 color_fn = function(val)

@@ -43,8 +43,8 @@ function f2t_map_di_system_capture_start(system_name, callback)
 
     f2t_debug_log("[map-di-system] Starting DI system capture for: %s", system_name)
 
-    -- Send DI system command
-    send(string.format("di system %s", system_name))
+    -- Send DI system command (include system name so it works from other systems)
+    send(string.format("di system %s", system_name), false)
 end
 
 -- ========================================

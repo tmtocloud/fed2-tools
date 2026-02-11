@@ -2,7 +2,8 @@
 -- Manages the buy/sell cycle for automated commodity trading
 
 -- Start hauling automation
-function f2t_hauling_start()
+--- @param requested_mode string|nil Optional mode override (e.g., "exchange" to force exchange mode for Founder+)
+function f2t_hauling_start(requested_mode)
     if F2T_HAULING_STATE.active then
         cecho("\n<yellow>[hauling]<reset> Hauling already active\n")
         return
@@ -49,10 +50,19 @@ function f2t_hauling_start()
         f2t_stamina_cancel_standalone_prompt()
     end
 
+    -- Register with stamina monitor for this session
+    f2t_stamina_register_client({
+        pause_callback = f2t_hauling_pause,
+        resume_callback = f2t_hauling_resume,
+        check_active = function()
+            return F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+        end
+    })
+
     -- NOTE: Don't start completion timer yet - it will be started when entering buying/selling phase
 
     -- Detect which hauling mode to use based on rank
-    local mode, err = f2t_hauling_detect_mode()
+    local mode, err = f2t_hauling_detect_mode(requested_mode)
 
     if not mode then
         -- Mode detection failed
@@ -69,6 +79,33 @@ function f2t_hauling_start()
     cecho(string.format("\n<cyan>[hauling]<reset> Rank: %s - Using %s\n", rank, mode_name))
     f2t_debug_log("[hauling] Mode selected: %s (%s)", mode, mode_name)
 
+    -- PO mode: validate ship capacity
+    if mode == "po" then
+        local hold = gmcp.char and gmcp.char.ship and gmcp.char.ship.hold
+        if not hold or not hold.max then
+            cecho("\n<red>[hauling]<reset> Cannot determine ship capacity\n")
+            f2t_hauling_do_stop()
+            return
+        end
+
+        local ship_lots = math.floor(hold.max / 75)
+        if ship_lots < 7 then
+            cecho(string.format("\n<red>[hauling]<reset> Ship too small for PO hauling (need at least 525 tons / 7 lots, have %d tons / %d lots)\n",
+                hold.max, ship_lots))
+            f2t_hauling_do_stop()
+            return
+        end
+
+        F2T_HAULING_STATE.po_ship_lots = ship_lots
+        f2t_debug_log("[hauling/po] Ship capacity: %d lots (%d tons)", ship_lots, hold.max)
+
+        if ship_lots >= 14 then
+            cecho(string.format("\n<cyan>[hauling]<reset> Ship capacity: %d lots (bundling enabled)\n", ship_lots))
+        else
+            cecho(string.format("\n<cyan>[hauling]<reset> Ship capacity: %d lots\n", ship_lots))
+        end
+    end
+
     -- Register mode-specific event handlers
     if mode == "ac" then
         F2T_HAULING_STATE.handler_id = f2t_ac_register_handlers()
@@ -76,6 +113,8 @@ function f2t_hauling_start()
         F2T_HAULING_STATE.handler_id = f2t_exchange_register_handlers()
     elseif mode == "akaturi" then
         F2T_HAULING_STATE.handler_id = f2t_akaturi_register_handlers()
+    elseif mode == "po" then
+        F2T_HAULING_STATE.handler_id = f2t_po_register_handlers()
     end
 
     -- Get starting phase for this mode and transition
@@ -146,6 +185,25 @@ function f2t_hauling_stop()
             return
         end
         -- Otherwise (getting job/searching/navigating to pickup), we can stop immediately below
+    end
+
+    -- For PO hauling, check if we have cargo in hold
+    if F2T_HAULING_STATE.mode == "po" then
+        local po_cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
+        if po_cargo and #po_cargo > 0 then
+            F2T_HAULING_STATE.stopping = true
+            cecho(string.format("\n<green>[hauling]<reset> Stopping after selling cargo (%d lots in hold)...\n", #po_cargo))
+            cecho("\n<dim_grey>Use 'haul terminate' to stop immediately<reset>\n")
+            f2t_debug_log("[hauling/po] Graceful stop requested, will finish selling %d lots", #po_cargo)
+            return
+        end
+        -- No cargo, stop immediately
+        if F2T_SPEEDWALK_ACTIVE then
+            f2t_debug_log("[hauling] Stopping speedwalk due to immediate stop")
+            f2t_map_speedwalk_stop()
+        end
+        f2t_hauling_do_stop()
+        return
     end
 
     -- For exchange hauling, check if we have cargo in hold
@@ -237,14 +295,16 @@ function f2t_hauling_finish_stop()
         f2t_exchange_cleanup_handlers(F2T_HAULING_STATE.handler_id)
     elseif F2T_HAULING_STATE.mode == "akaturi" and F2T_HAULING_STATE.handler_id then
         f2t_akaturi_cleanup_handlers(F2T_HAULING_STATE.handler_id)
+    elseif F2T_HAULING_STATE.mode == "po" and F2T_HAULING_STATE.handler_id then
+        f2t_po_cleanup_handlers(F2T_HAULING_STATE.handler_id)
     elseif F2T_HAULING_STATE.handler_id then
         -- Generic cleanup for any other mode
         killAnonymousEventHandler(F2T_HAULING_STATE.handler_id)
         f2t_debug_log("[hauling] Cleaned up event handlers for mode: %s", F2T_HAULING_STATE.mode or "unknown")
     end
 
-    -- Note: Stamina monitoring continues running (always-on mode)
-    -- It will revert to standalone prompt mode now that hauling is inactive
+    -- Unregister from stamina monitor (monitoring continues in standalone mode)
+    f2t_stamina_unregister_client()
 
     -- Cancel any active price all operation
     if f2t_price_cancel_all and f2t_price_cancel_all() then
@@ -332,6 +392,19 @@ function f2t_hauling_finish_stop()
         F2T_AKATURI_STATE.delivery_matches = {}
         F2T_AKATURI_STATE.current_match_index = 0
     end
+
+    -- Clear PO state
+    F2T_HAULING_STATE.po_owned_planets = {}
+    F2T_HAULING_STATE.po_current_system = nil
+    F2T_HAULING_STATE.po_planet_exchange_data = {}
+    F2T_HAULING_STATE.po_job_queue = {}
+    F2T_HAULING_STATE.po_job_index = 1
+    F2T_HAULING_STATE.po_current_job = nil
+    F2T_HAULING_STATE.po_ship_lots = 0
+    F2T_HAULING_STATE.po_scan_count = 0
+    F2T_HAULING_STATE.po_deficit_count = 0
+    F2T_HAULING_STATE.po_excess_count = 0
+    F2T_HAULING_STATE.po_scan_planets = {}
 
     -- Clear cycle pause tracking
     F2T_HAULING_STATE.cycle_pause_return_location = nil
@@ -456,7 +529,56 @@ function f2t_hauling_show_status()
 
     -- Active session details (only show when hauling is running)
     if F2T_HAULING_STATE.active then
-        -- Commodity queue
+        -- PO-specific status
+        if F2T_HAULING_STATE.mode == "po" then
+            cecho(string.format("\n<white>Mode:<reset> <cyan>Planet Owner Trading<reset>\n"))
+            cecho(string.format("  System: <cyan>%s<reset>\n",
+                F2T_HAULING_STATE.po_current_system or "unknown"))
+
+            if #F2T_HAULING_STATE.po_owned_planets > 0 then
+                cecho(string.format("  Owned Planets: <cyan>%s<reset>\n",
+                    table.concat(F2T_HAULING_STATE.po_owned_planets, ", ")))
+            end
+
+            cecho(string.format("  Ship Capacity: <cyan>%d lots<reset>%s\n",
+                F2T_HAULING_STATE.po_ship_lots,
+                F2T_HAULING_STATE.po_ship_lots >= 14 and " (bundling)" or ""))
+            cecho(string.format("  Scan Iterations: <cyan>%d<reset>\n",
+                F2T_HAULING_STATE.po_scan_count))
+
+            -- Current job
+            local job = F2T_HAULING_STATE.po_current_job
+            if job then
+                local type_color = job.type == "deficit" and "orange" or "yellow"
+                cecho(string.format("\n<white>Current Job:<reset> <%s>%s<reset> <cyan>%s<reset>\n",
+                    type_color, job.type, job.commodity))
+                cecho(string.format("  Buy: <cyan>%s<reset> → Sell: <cyan>%s<reset>\n",
+                    job.buy_planet or "?", job.sell_planet or "?"))
+                if job.bundled_commodity then
+                    cecho(string.format("  Bundled: <cyan>%s<reset> (%s → %s)\n",
+                        job.bundled_commodity,
+                        job.bundled_buy_planet or "?", job.bundled_sell_planet or "?"))
+                end
+            end
+
+            -- Job queue progress
+            local queue = F2T_HAULING_STATE.po_job_queue
+            if queue and #queue > 0 then
+                cecho(string.format("\n<white>Job Queue:<reset> <cyan>%d/%d<reset>\n",
+                    F2T_HAULING_STATE.po_job_index, #queue))
+                for i, qjob in ipairs(queue) do
+                    local marker = i == F2T_HAULING_STATE.po_job_index and " <yellow>*<reset>" or ""
+                    local tc = qjob.type == "deficit" and "red" or "yellow"
+                    local bundle_info = qjob.bundled_commodity
+                        and string.format(" + %s", qjob.bundled_commodity) or ""
+                    cecho(string.format("  %d. <%s>%s<reset> <cyan>%s<reset>%s (%s → %s)%s\n",
+                        i, tc, qjob.type, qjob.commodity, bundle_info,
+                        qjob.buy_planet or "?", qjob.sell_planet or "?", marker))
+                end
+            end
+        end
+
+        -- Commodity queue (exchange mode)
         if F2T_HAULING_STATE.commodity_queue and #F2T_HAULING_STATE.commodity_queue > 0 then
             cecho(string.format("\n<white>Commodity Queue:<reset> <cyan>%d/%d<reset>\n",
                 F2T_HAULING_STATE.queue_index, #F2T_HAULING_STATE.commodity_queue))
@@ -590,10 +712,68 @@ function f2t_hauling_transition(new_phase)
         else
             f2t_debug_log("[hauling/akaturi] Still navigating to planet, waiting for completion")
         end
+    -- Planet Owner phases
+    elseif new_phase == "po_scanning_system" then
+        f2t_hauling_phase_po_scan_system()
+    elseif new_phase == "po_scanning_exchanges" then
+        f2t_hauling_phase_po_scan_exchanges()
+    elseif new_phase == "po_building_queue" then
+        f2t_hauling_phase_po_build_queue()
+    elseif new_phase == "po_navigating_to_buy" then
+        f2t_hauling_phase_po_navigate_to_buy()
+    elseif new_phase == "po_navigating_to_bundled_buy" then
+        -- Bundled buy navigation: re-navigate to second source on resume
+        f2t_hauling_phase_po_bundled_buy_navigate()
+    elseif new_phase == "po_buying" then
+        f2t_hauling_phase_po_buy()
+    elseif new_phase == "po_navigating_to_sell" then
+        f2t_hauling_phase_po_navigate_to_sell()
+    elseif new_phase == "po_selling" then
+        f2t_hauling_phase_po_sell()
+    elseif new_phase == "po_checking_deficits" then
+        f2t_hauling_phase_po_check_deficits()
     else
         cecho(string.format("\n<red>[hauling]<reset> Unknown phase: %s\n", new_phase))
         f2t_hauling_stop()
     end
+end
+
+-- ========================================
+-- Shared: Jettison Cargo
+-- ========================================
+
+--- Jettison all remaining cargo, then call callback
+--- Used by both exchange and PO modes as a last resort when cargo can't be sold
+--- @param callback function Called when cargo is cleared
+function f2t_hauling_jettison_cargo(callback)
+    local cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
+    if not cargo or #cargo == 0 then
+        callback()
+        return
+    end
+
+    -- Collect unique commodities and their lot counts
+    local commodities = {}
+    for _, lot in ipairs(cargo) do
+        commodities[lot.commodity] = (commodities[lot.commodity] or 0) + 1
+    end
+
+    -- Send jettison commands for each commodity
+    for commodity, lots in pairs(commodities) do
+        f2t_debug_log("[hauling] Jettisoning %d lots of %s", lots, commodity)
+        cecho(string.format("\n<yellow>[hauling]<reset> Jettisoning %d lots of <cyan>%s<reset>\n", lots, commodity))
+        for i = 1, lots do
+            send(string.format("jettison %s", commodity), false)
+        end
+    end
+
+    -- Wait for jettison to complete, then continue
+    tempTimer(1, function()
+        if not F2T_HAULING_STATE.active or F2T_HAULING_STATE.paused then
+            return
+        end
+        callback()
+    end)
 end
 
 f2t_debug_log("[hauling] State machine loaded")

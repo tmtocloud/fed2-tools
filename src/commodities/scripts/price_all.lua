@@ -99,6 +99,10 @@ end
 -- Get price data for all commodities (programmatic use)
 -- callback: function(results) called when complete with array of analysis data
 function f2t_price_get_all_data(callback)
+    -- Check prerequisites before starting
+    if not f2t_check_rank_requirement("Merchant", "Price checking") then return false end
+    if not f2t_check_tool_requirement("remote-access-cert", "Price checking", "Remote Price Check Service") then return false end
+
     if price_all_state.active then
         cecho("\n<yellow>[commodities]<reset> Price all operation already in progress\n")
         return false
@@ -125,12 +129,15 @@ end
 
 -- Display all commodities with price analysis (user-facing)
 function f2t_price_show_all()
-    cecho(string.format("\n<green>[commodities]<reset> Checking prices for all commodities...\n"))
-    cecho("<dim_grey>This may take a moment...<reset>\n")
-
-    f2t_price_get_all_data(function(results)
+    -- f2t_price_get_all_data checks prerequisites and returns false on failure
+    local started = f2t_price_get_all_data(function(results)
         f2t_price_display_all(results)
     end)
+
+    if started then
+        cecho(string.format("\n<green>[commodities]<reset> Checking prices for all commodities...\n"))
+        cecho("<dim_grey>This may take a moment...<reset>\n")
+    end
 end
 
 -- Cancel any active price all operation

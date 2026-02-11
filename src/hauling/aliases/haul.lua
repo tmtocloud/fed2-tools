@@ -19,7 +19,8 @@ end
 local subcommand = string.lower(args):match("^(%S+)")
 
 if subcommand == "start" then
-    f2t_hauling_start()
+    local rest = args:match("^%S+%s+(%S+)")
+    f2t_hauling_start(rest)
 
 elseif subcommand == "stop" then
     f2t_hauling_stop()

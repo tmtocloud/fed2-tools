@@ -59,10 +59,10 @@ When starting work on this project, read documentation in this order:
 
 | Component | Lines | Description | Link |
 |-----------|-------|-------------|------|
-| **bulk-commands** | 53 | Bulk buy/sell commodities | [CLAUDE.md](src/bulk-commands/CLAUDE.md) |
-| **commodities** | 228 | Price checking and analysis | [CLAUDE.md](src/commodities/CLAUDE.md) |
+| **commodities** | 280 | Price analysis, bulk buy/sell | [CLAUDE.md](src/commodities/CLAUDE.md) |
 | **factory** | 71 | Factory status display | [CLAUDE.md](src/factory/CLAUDE.md) |
 | **map** | 269 | Auto-mapper with navigation | [CLAUDE.md](src/map/CLAUDE.md) |
+| **po** | 100 | Planet owner tools | [CLAUDE.md](src/po/CLAUDE.md) |
 | **refuel** | 42 | Automatic ship refueling | [CLAUDE.md](src/refuel/CLAUDE.md) |
 | **shared** | 460 | Shared utilities and APIs | [CLAUDE.md](src/shared/CLAUDE.md) |
 
@@ -70,16 +70,14 @@ When starting work on this project, read documentation in this order:
 
 ### By Component Feature
 
-**bulk-commands:**
-- Bulk buy/sell implementation
-- State machine pattern
-- GMCP cargo/hold integration
-
 **commodities:**
 - Price data capture
 - Cartel broker integration
 - "Price all" sequential processing
 - Settings registration example
+- Bulk buy/sell implementation
+- State machine pattern (F2T_BULK_STATE)
+- GMCP cargo/hold integration
 
 **factory:**
 - Multi-query pattern
@@ -96,6 +94,12 @@ When starting work on this project, read documentation in this order:
 - Blacklist system
 - Galaxy cache
 - Jump integration
+
+**po:**
+- Two-phase sequential capture (exchange + production)
+- Callback-based reusable capture functions
+- Timer-based completion for production
+- Commodity group resolution from commodities.json
 
 **refuel:**
 - Prompt trigger pattern
@@ -128,7 +132,7 @@ When starting work on this project, read documentation in this order:
 - Persistence: [shared/CLAUDE.md → Settings Persistence](src/shared/CLAUDE.md#settings-persistence-f2t_settingslua)
 
 **State Management:**
-- Global state flags: [bulk-commands/CLAUDE.md](src/bulk-commands/CLAUDE.md)
+- Global state flags: [commodities/CLAUDE.md](src/commodities/CLAUDE.md)
 - Capture state: [commodities/CLAUDE.md](src/commodities/CLAUDE.md)
 - Sequential processing: [factory/CLAUDE.md](src/factory/CLAUDE.md)
 

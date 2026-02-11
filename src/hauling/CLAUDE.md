@@ -4,11 +4,23 @@ Automated hauling that adapts based on player rank:
 - **Groundhog (level 1)**: No hauling available (must reach Commander)
 - **Commander, Captain (levels 2-3)**: Armstrong Cuthbert jobs (hauling contracts)
 - **Adventurer/Adventuress (level 4)**: Akaturi contracts (courier missions)
-- **Merchant+ (level 5+)**: Exchange trading (buy low, sell high)
+- **Merchant to Financier (levels 5-9)**: Exchange trading (buy low, sell high)
+- **Founder+ (level 10+)**: Planet Owner trading (default), Exchange trading (optional override)
 
 ## Features
 
-### Exchange Trading (Merchant+)
+### Planet Owner Trading (Founder+)
+- Scans current system for planets and verifies ownership via GMCP (once at startup)
+- Captures exchange data remotely for all planets (no navigation needed)
+- Identifies production deficits (stock at -525) and excesses (stock at max)
+- Resolves sources/destinations: owned planets first, then cartel price check
+- Ships >= 14 lots can bundle 2 jobs with same sell destination per trip
+- Always buys exactly 7 lots per commodity
+- After each sell, re-scans exchanges remotely for new deficits (priority insertion)
+- Continuous loop: scan → queue → execute → re-check → cycle pause → re-scan
+- Use `haul start exchange` to force exchange mode instead
+
+### Exchange Trading (Merchant to Financier)
 - Automatically identifies most profitable commodity
 - Navigates to best buy/sell locations
 - Uses bulk buy/sell to maximize efficiency
@@ -40,8 +52,9 @@ Automated hauling that adapts based on player rank:
 
 ### Start/Stop
 ```
-haul start     # Begin automated trading
-haul stop      # Stop and reset state
+haul start            # Begin automated trading (auto-detects mode by rank)
+haul start exchange   # Force exchange mode (Founder+ only)
+haul stop             # Stop and reset state
 ```
 
 ### Pause/Resume
@@ -87,9 +100,20 @@ haul settings clear excluded_commodities                 # Clear exclusion list
 
 ## How It Works
 
-The hauling system automatically detects your rank on startup and uses the appropriate workflow.
+The hauling system automatically detects your rank on startup and uses the appropriate workflow. Founder+ defaults to PO mode but can override with `haul start exchange`.
 
-### Exchange Trading Cycle (Merchant+)
+### Planet Owner Trading Cycle (Founder+)
+
+1. **Scan System**: Use `f2t_map_di_system_capture_start()` to get planet names, verify ownership via GMCP
+2. **Scan Exchanges**: Remotely capture exchange data for all planets using `f2t_po_capture_exchange(planet)`
+4. **Build Queue**: Find deficits (stock == -525) and excesses (stock == max)
+5. **Resolve Sources**: Check owned planets first, fall back to `f2t_price_check_commodity()` for cartel
+6. **Bundle**: For 14-lot ships, pair jobs with same sell destination
+7. **Execute Jobs**: Navigate → buy 7 lots → navigate → sell all (deficits first)
+8. **Re-check Deficits**: After each sell, re-scan exchanges remotely. New deficits inserted at front of queue
+9. **Cycle**: When queue exhausted, cycle_pause then restart from step 1
+
+### Exchange Trading Cycle (Merchant to Financier)
 
 1. **Analyze**: Use `f2t_price_get_all_data()` to find most profitable commodity
 2. **Navigate to Buy**: Use `f2t_map_navigate()` to go to best selling exchange
@@ -132,6 +156,17 @@ The hauling system automatically detects your rank on startup and uses the appro
 ### State Machine
 
 The hauling automation uses a state machine with rank-specific phases:
+
+**Planet Owner Phases**:
+- **po_scanning_system**: Getting planet list via `di system`
+- **po_scanning_exchanges**: Remotely capturing exchange data for all planets (no navigation)
+- **po_building_queue**: Finding deficits/excesses, resolving sources, bundling
+- **po_navigating_to_buy**: Traveling to buy location
+- **po_buying**: Buying 7 lots (or bundled buy)
+- **po_navigating_to_bundled_buy**: Traveling to second source for bundled jobs
+- **po_navigating_to_sell**: Traveling to sell location
+- **po_selling**: Selling all cargo
+- **po_checking_deficits**: Remote re-scan for new deficits after sell
 
 **Exchange Trading Phases**:
 - **analyzing**: Finding most profitable commodity and locations
@@ -180,7 +215,7 @@ State transitions happen automatically, or can be paused/resumed manually.
 - `f2t_is_rank_below(rank)` - Check if below specific rank
 
 **Mode Detection** ([mode_detection.lua](scripts/hauling_mode_detection.lua)):
-- `f2t_hauling_detect_mode()` - Determine hauling mode based on rank (returns "ac", "akaturi", "exchange", or nil)
+- `f2t_hauling_detect_mode(requested_mode)` - Determine hauling mode based on rank (returns "ac", "akaturi", "exchange", "po", or nil)
 - `f2t_hauling_get_mode_name(mode)` - Get display name for mode
 - `f2t_hauling_get_starting_phase(mode)` - Get initial phase for mode
 
@@ -212,6 +247,9 @@ State transitions happen automatically, or can be paused/resumed manually.
 - `hauling_ac_capture_timer.lua` - AC work command capture timer
 - `hauling_akaturi_phases.lua` - Akaturi contract phases + event handlers
 - `hauling_akaturi.lua` - Akaturi contract data structures and helper functions
+- `hauling_po_discovery.lua` - PO system scanning and ownership verification
+- `hauling_po_queue.lua` - PO deficit/excess detection, resolution, and bundling
+- `hauling_po_phases.lua` - PO phase implementations and event handlers
 
 **Aliases**:
 - `haul.lua` - Consolidated alias for all subcommands
@@ -300,7 +338,20 @@ F2T_HAULING_STATE = {
     akaturi_delivery_error = false,     -- Delivery error occurred
     akaturi_pickup_sent = false,        -- Pickup command sent (prevent duplicates)
     akaturi_delivery_sent = false,      -- Dropoff command sent (prevent duplicates)
-    akaturi_payment_amount = nil        -- Payment received for contract
+    akaturi_payment_amount = nil,       -- Payment received for contract
+
+    -- Planet Owner Trading (Founder+)
+    po_owned_planets = {},              -- Array of owned planet names
+    po_current_system = nil,            -- System being operated in
+    po_planet_exchange_data = {},       -- {[planet_name] = exchange_data_array}
+    po_job_queue = {},                  -- Array of resolved job objects
+    po_job_index = 1,                   -- Current position in queue
+    po_current_job = nil,               -- Currently executing job
+    po_ship_lots = 0,                   -- Ship capacity in lots (hold.max / 75)
+    po_scan_count = 0,                  -- Full scan iterations completed
+    po_deficit_count = 0,               -- Deficits found in last scan
+    po_excess_count = 0,                -- Excesses found in last scan
+    po_scan_planets = {}                -- Planets to scan during exchange scan
 }
 ```
 
@@ -391,9 +442,9 @@ The hauling system uses event handlers instead of fixed timers:
 
 ### Planned Features
 
-1. **Planet Owner Hauling** (Founder+ rank)
-   - Transfer commodities between owned planets
-   - Optimize factory supply chains
+1. ~~**Planet Owner Hauling** (Founder+ rank)~~ ✓ Implemented
+   - ~~Transfer commodities between owned planets~~
+   - ~~Optimize factory supply chains~~
 
 3. **Multi-Commodity Strategy**
    - Trade multiple commodities per cycle

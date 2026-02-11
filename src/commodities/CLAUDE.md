@@ -1,6 +1,6 @@
 # Commodities Component
 
-Analyzes commodity prices across Federation 2 exchanges to identify profitable trading opportunities via the cartel broker system.
+Commodity trading tools for Federation 2: price analysis via the cartel broker system, and bulk buy/sell commands for exchanges.
 
 ## Features
 
@@ -9,6 +9,9 @@ Analyzes commodity prices across Federation 2 exchanges to identify profitable t
 - Display top buy/sell locations with price data
 - Calculate projected profits per ton and per 75-ton lot
 - Configurable number of results
+- Bulk buy commodities to fill cargo hold
+- Bulk sell cargo (all or specific commodity)
+- Margin reporting on bulk sell (cost, revenue, profit)
 
 ## Commands
 
@@ -41,6 +44,25 @@ Checks all 64 commodities sequentially (0.5s delay each, ~30-40s total). Display
 - Profit per ton
 - Profit per 75-ton lot
 
+### Bulk Buy
+
+```
+bb <commodity>           # Buy until cargo full
+bb <commodity> <count>   # Buy specific number of lots
+```
+
+Verifies exchange location, calculates available hold space, sends sequential buy commands.
+
+### Bulk Sell
+
+```
+bs                       # Sell all cargo (all commodities)
+bs <commodity>           # Sell all of specific commodity
+bs <commodity> <count>   # Sell specific number of lots
+```
+
+Sells sequentially. When selling all cargo, queues each unique commodity. Reports margin (cost vs revenue) on completion.
+
 ### Settings
 
 ```
@@ -65,7 +87,9 @@ price settings clear results_count     # Reset to 5
 
 Uses Fed2 cartel broker command: `check price <commodity> cartel`
 
-**Requirements:** Merchant rank or higher, access to any exchange
+**Requirements:** Merchant rank or higher, `remote-access-cert` tool, access to any exchange
+
+Both prerequisites are checked proactively before sending the game command.
 
 ### Price Capture Flow
 
@@ -101,24 +125,46 @@ Uses Fed2 cartel broker command: `check price <commodity> cartel`
 
 **State Management:** `price_all_state` tracks progress, prevents concurrent operations
 
+### Bulk Buy/Sell
+
+- **State machine**: Uses `F2T_BULK_STATE` global to track active operations
+- **Trigger-driven**: Success/error triggers advance or stop the bulk operation
+- **Sequential commands**: Sends one command at a time, waits for response
+- **GMCP integration**:
+  - Buy: Reads `gmcp.char.ship.hold.cur` (available space) to calculate capacity
+  - Sell: Counts lots in `gmcp.char.ship.cargo` table (each entry = 1 lot of 75 tons)
+- **Commodity queue**: When selling all cargo, maintains a queue of commodities and processes them sequentially
+- **Margin reporting**: Extracts cost from `gmcp.char.ship.cargo` and revenue from sell success trigger to calculate profit margins
+
+**Margin Color Coding:**
+- Profit: Green (>=0) or Red (<0)
+- Margin: Green (>=40%), Yellow (>=20%), White (>0%), Red (<0%)
+
 ## Key Files
 
 **Scripts:**
-- `init.lua` - Initialization, settings/help registration
+- `init.lua` - Initialization, settings/help registration, bulk state setup
 - `price_control.lua` - Main control functions
 - `price_parser.lua` - Parse game output
 - `price_analyzer.lua` - Analyze data, calculate profitability
 - `price_display.lua` - Display formatted tables
 - `price_all.lua` - "Price all" functionality
+- `bulk_buy.lua` - Bulk buy logic and functions
+- `bulk_sell.lua` - Bulk sell logic and functions
 
 **Triggers:**
 - `price_output_start.lua` - Detect output start
+- `price_output_continuation.lua` - Detect multi-page continuation
 - `price_capture.lua` - Capture price lines
-- `price_output_end.lua` - Detect end, process results
-- `price_error_merchant.lua` - Handle rank requirement error
+- `buy_success.lua` - Detect successful purchase
+- `buy_error_*.lua` - Detect buy errors (insufficient funds, invalid, not selling)
+- `sell_success.lua` - Detect successful sale
+- `sell_error_*.lua` - Detect sell errors (invalid, no cargo, not buying)
 
 **Aliases:**
-- `price.lua` - Consolidated alias (all subcommands)
+- `price.lua` - Consolidated price alias (all subcommands)
+- `bb.lua` - Bulk buy command
+- `bs.lua` - Bulk sell command
 
 ## Public API
 
@@ -129,6 +175,14 @@ Check and display prices for single commodity.
 
 **`f2t_price_show_all()`**
 Check and display prices for all commodities.
+
+### Bulk Buy/Sell
+
+**`f2t_bulk_buy_start(commodity, requested_lots, callback)`**
+Start a bulk buy operation. Optional callback for programmatic mode.
+
+**`f2t_bulk_sell_start(commodity, requested_lots, callback)`**
+Start a bulk sell operation. Pass `nil` commodity to sell all cargo.
 
 ### Programmatic
 
@@ -217,11 +271,12 @@ Output includes:
 - Lines captured count
 - Commodity processing during "price all"
 - Parser/analyzer activity
+- Bulk buy/sell operations and state changes
+- Margin calculations
 
 ## Future Enhancements
 
 - Route planning (buy from X, sell to Y)
 - Historical price tracking
 - Price alerts
-- Integration with bulk-buy/sell commands
 - Filtering by system/region

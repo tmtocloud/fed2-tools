@@ -5,12 +5,14 @@
 -- - Groundhog (level 1): No hauling available
 -- - Commander, Captain (levels 2-3): Armstrong Cuthbert jobs
 -- - Adventurer/Adventuress (level 4): Akaturi contracts
--- - Merchant+ (level 5+): Exchange trading
+-- - Merchant to Financier (levels 5-9): Exchange trading
+-- - Founder+ (level 10+): Planet Owner trading (default), Exchange trading (optional)
 
 --- Detect which hauling mode should be used based on player rank
---- @return string|nil Mode name ("ac", "akaturi", "exchange") or nil if no mode available
+--- @param requested_mode string|nil Optional mode override (e.g., "exchange" to force exchange mode for Founder+)
+--- @return string|nil Mode name ("ac", "akaturi", "exchange", "po") or nil if no mode available
 --- @return string|nil Error message if mode cannot be determined
-function f2t_hauling_detect_mode()
+function f2t_hauling_detect_mode(requested_mode)
     local rank = f2t_get_rank()
 
     if not rank then
@@ -25,7 +27,8 @@ function f2t_hauling_detect_mode()
         return nil, string.format("Unknown rank: %s", rank)
     end
 
-    f2t_debug_log("[hauling/mode] Checking mode for rank: %s (level %d)", rank, rank_level)
+    f2t_debug_log("[hauling/mode] Checking mode for rank: %s (level %d), requested: %s",
+        rank, rank_level, tostring(requested_mode))
 
     -- Groundhog (level 1) - No hauling available
     if rank_level == 1 then
@@ -45,10 +48,21 @@ function f2t_hauling_detect_mode()
         return "akaturi", nil
     end
 
-    -- Merchant+ (level 5+) - Exchange trading
-    if rank_level >= 5 then
+    -- Merchant to Financier (levels 5-9) - Exchange trading
+    if rank_level >= 5 and rank_level <= 9 then
         f2t_debug_log("[hauling/mode] Selected mode: exchange (rank level %d)", rank_level)
         return "exchange", nil
+    end
+
+    -- Founder+ (level 10+) - Planet Owner trading (default) or Exchange trading (override)
+    if rank_level >= 10 then
+        if requested_mode and string.lower(requested_mode) == "exchange" then
+            f2t_debug_log("[hauling/mode] Selected mode: exchange (requested override, rank level %d)", rank_level)
+            return "exchange", nil
+        end
+
+        f2t_debug_log("[hauling/mode] Selected mode: po (rank level %d)", rank_level)
+        return "po", nil
     end
 
     -- Should never reach here, but handle it anyway
@@ -66,6 +80,8 @@ function f2t_hauling_get_mode_name(mode)
         return "Akaturi Contracts"
     elseif mode == "exchange" then
         return "Exchange Trading"
+    elseif mode == "po" then
+        return "Planet Owner Trading"
     else
         return "Unknown Mode"
     end
@@ -81,6 +97,8 @@ function f2t_hauling_get_starting_phase(mode)
         return "akaturi_getting_job"
     elseif mode == "exchange" then
         return "analyzing"
+    elseif mode == "po" then
+        return "po_scanning_system"
     else
         return nil
     end

@@ -5,6 +5,22 @@
 -- @param commodity: Commodity name (supports short names like "petros")
 -- @param callback: Optional callback for programmatic mode
 function f2t_price_check_commodity(commodity, callback)
+    -- Check prerequisites before sending game command
+    if not f2t_check_rank_requirement("Merchant", "Price checking") then
+        if callback then
+            f2t_price_cancel_all()
+            callback(commodity, nil, nil)
+        end
+        return
+    end
+    if not f2t_check_tool_requirement("remote-access-cert", "Price checking", "Remote Price Check Service") then
+        if callback then
+            f2t_price_cancel_all()
+            callback(commodity, nil, nil)
+        end
+        return
+    end
+
     -- Resolve short names to full names (canonical = properly cased)
     local canonical, was_short = f2t_resolve_commodity(commodity)
     if was_short then
