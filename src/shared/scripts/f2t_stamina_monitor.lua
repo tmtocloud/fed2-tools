@@ -332,19 +332,58 @@ function f2t_stamina_resume_client()
         f2t_map_clear_nav_owner()
     end
 
-    if F2T_STAMINA_STATE.client_was_paused and F2T_STAMINA_STATE.client_resume_callback then
-        f2t_debug_log("[stamina] Resuming client activity")
-        F2T_STAMINA_STATE.client_resume_callback()
-        F2T_STAMINA_STATE.client_was_paused = false
-    else
-        f2t_debug_log("[stamina] Standalone mode - no client to resume")
-    end
+    -- Check if food trip failed
+    local failed = F2T_STAMINA_STATE.food_trip_failed
+    F2T_STAMINA_STATE.food_trip_failed = nil
+    F2T_STAMINA_STATE.buy_attempts = 0
 
     -- Reset to idle
     F2T_STAMINA_STATE.current_phase = "idle"
     F2T_STAMINA_STATE.return_location = nil
 
-    cecho("\n<green>[stamina]<reset> Stamina restored, resuming normal operations\n")
+    if failed then
+        -- Food trip failed - do NOT resume client to prevent character death
+        -- Client stays paused; user must manually stop or fix and restart
+        f2t_debug_log("[stamina] Food trip failed: %s - client NOT resumed (safety stop)", failed)
+
+        cecho("\n<red>╔════════════════════════════════════════════════════════╗<reset>\n")
+        cecho(string.format("<red>║<reset>  <white>STAMINA REFILL FAILED:<reset> %s\n", failed))
+        cecho("<red>║<reset>  <yellow>Activity stopped to prevent character death.<reset>\n")
+        cecho("<red>║<reset>  Fix food source setting and restart, or stop manually.\n")
+        cecho("<red>╚════════════════════════════════════════════════════════╝<reset>\n")
+
+        -- Unregister client so stamina monitor doesn't re-trigger food trip
+        -- (client remains paused - user must intervene)
+        F2T_STAMINA_STATE.client_was_paused = false
+        f2t_stamina_unregister_client()
+    else
+        -- Success - resume client normally
+        if F2T_STAMINA_STATE.client_was_paused and F2T_STAMINA_STATE.client_resume_callback then
+            f2t_debug_log("[stamina] Resuming client activity")
+            F2T_STAMINA_STATE.client_resume_callback()
+            F2T_STAMINA_STATE.client_was_paused = false
+        else
+            f2t_debug_log("[stamina] Standalone mode - no client to resume")
+        end
+
+        cecho("\n<green>[stamina]<reset> Stamina restored, resuming normal operations\n")
+    end
+end
+
+-- Abort food trip due to failure (navigation failed, max buy attempts, etc.)
+-- Tries to navigate back first, then resumes client with error
+function f2t_stamina_abort_food_trip(reason)
+    f2t_debug_log("[stamina] Aborting food trip: %s", reason)
+    F2T_STAMINA_STATE.food_trip_failed = reason
+
+    -- Try to navigate back if we have a return location
+    if F2T_STAMINA_STATE.return_location then
+        f2t_debug_log("[stamina] Attempting to return to %s after abort", F2T_STAMINA_STATE.return_location)
+        f2t_stamina_transition("navigating_back")
+    else
+        -- No return location, resume immediately
+        f2t_stamina_resume_client()
+    end
 end
 
 -- ========================================
@@ -386,26 +425,39 @@ function f2t_stamina_phase_navigate_to_food()
     local success = f2t_map_navigate(food_source)
 
     if not success then
-        cecho("\n<red>[stamina]<reset> Failed to navigate to food source, resuming client\n")
-        f2t_stamina_resume_client()
+        f2t_stamina_abort_food_trip("could not find path to food source")
         return
     end
 
     -- Wait for navigation to complete (checked in GMCP handler)
 end
 
+-- Max buy attempts before aborting (each attempt = 0.5s, 25 = 12.5s)
+-- Normal 0→100% needs ~15 buys, so 25 gives comfortable margin
+F2T_STAMINA_MAX_BUY_ATTEMPTS = 25
+
 -- Phase: Buy food until stamina is full
 function f2t_stamina_phase_buy_food()
+    -- Track attempts
+    F2T_STAMINA_STATE.buy_attempts = (F2T_STAMINA_STATE.buy_attempts or 0) + 1
+
+    if F2T_STAMINA_STATE.buy_attempts > F2T_STAMINA_MAX_BUY_ATTEMPTS then
+        f2t_debug_log("[stamina] Max buy attempts (%d) exceeded, aborting", F2T_STAMINA_MAX_BUY_ATTEMPTS)
+        f2t_stamina_abort_food_trip("max buy attempts exceeded (not at a food vendor?)")
+        return
+    end
+
     local percent = math.floor((F2T_STAMINA_STATE.current_stamina / F2T_STAMINA_STATE.max_stamina) * 100)
 
     if percent >= 100 then
         -- Stamina full, we're done
         f2t_debug_log("[stamina] Stamina full (%d%%)", percent)
+        F2T_STAMINA_STATE.buy_attempts = 0
         f2t_stamina_finish_food_trip()
         return
     end
 
-    f2t_debug_log("[stamina] Buying food (stamina: %d%%)", percent)
+    f2t_debug_log("[stamina] Buying food (stamina: %d%%, attempt %d/%d)", percent, F2T_STAMINA_STATE.buy_attempts, F2T_STAMINA_MAX_BUY_ATTEMPTS)
 
     -- Buy food from vendor (automatically consumed, +10 stamina)
     send("buy food")
@@ -564,8 +616,15 @@ function f2t_stamina_check_nav_to_food_complete()
     -- Check if speedwalk is no longer active (treat nil as inactive)
     local speedwalk_active = F2T_SPEEDWALK_ACTIVE or false
     if not speedwalk_active then
-        f2t_debug_log("[stamina] Arrived at food source")
-        f2t_stamina_transition("buying_food")
+        local result = F2T_SPEEDWALK_LAST_RESULT
+        if result == "completed" then
+            f2t_debug_log("[stamina] Arrived at food source")
+            f2t_stamina_transition("buying_food")
+        else
+            -- Navigation failed or was stopped
+            f2t_debug_log("[stamina] Navigation to food failed: %s", result or "unknown")
+            f2t_stamina_abort_food_trip(string.format("could not reach food source (%s)", result or "unknown"))
+        end
     end
 end
 
@@ -578,7 +637,13 @@ function f2t_stamina_check_nav_back_complete()
     -- Check if speedwalk is no longer active (treat nil as inactive)
     local speedwalk_active = F2T_SPEEDWALK_ACTIVE or false
     if not speedwalk_active then
-        f2t_debug_log("[stamina] Arrived back at original location")
+        local result = F2T_SPEEDWALK_LAST_RESULT
+        if result == "completed" then
+            f2t_debug_log("[stamina] Arrived back at original location")
+        else
+            -- Navigation back failed - resume at current location (best effort)
+            f2t_debug_log("[stamina] Navigation back failed: %s - resuming at current location", result or "unknown")
+        end
         f2t_stamina_resume_client()
     end
 end
