@@ -51,7 +51,7 @@ The package comes with bundled with two starter maps to help you get started. Ad
 |--|--|
 |starter_map.json|Matches the maps available in the [Federation 2 Guide](https://federation2.com/guide/#sec-20).|
 |starter_map_with_exchanges.json|Adds exchanges for planets where they were not included in the starter map.|
-|galaxy_brief_{YYMMDD}.json|Available in the maps folder of this repository, includes all systems, planets, and their shuttlepads and exchanges as of the date indicated.|
+|galaxy_brief.json|Available in the maps folder of this repository, includes all systems, planets, and their shuttlepads and exchanges as of the commit date.|
 
 To import:
 
