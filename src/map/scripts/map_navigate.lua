@@ -34,6 +34,7 @@ function f2t_map_navigate(destination)
     if current_room_id == target_id then
         cecho("\n<green>[map]<reset> You are already at the destination\n")
         f2t_debug_log("[map] Already at destination (room %d)", target_id)
+        F2T_SPEEDWALK_LAST_RESULT = "completed"
         return true
     end
 
@@ -65,6 +66,7 @@ function f2t_map_navigate(destination)
     if #speedWalkDir == 0 then
         cecho("\n<green>[map]<reset> Already at destination\n")
         f2t_debug_log("[map] Empty path - already at destination")
+        F2T_SPEEDWALK_LAST_RESULT = "completed"
         return true
     end
 
