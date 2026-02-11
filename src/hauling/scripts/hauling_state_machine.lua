@@ -21,6 +21,7 @@ function f2t_hauling_start(requested_mode)
 
     F2T_HAULING_STATE.active = true
     F2T_HAULING_STATE.paused = false
+    F2T_HAULING_STATE.pause_requested = false
     F2T_HAULING_STATE.stopping = false
     F2T_HAULING_STATE.cycle_count = 0
 
@@ -51,6 +52,7 @@ function f2t_hauling_start(requested_mode)
     end
 
     -- Register with stamina monitor for this session
+    -- Stamina monitor uses deferred pause (waits for current operation to complete)
     f2t_stamina_register_client({
         pause_callback = f2t_hauling_pause,
         resume_callback = f2t_hauling_resume,
@@ -135,6 +137,9 @@ function f2t_hauling_stop()
         cecho("\n<yellow>[hauling]<reset> Hauling not active\n")
         return
     end
+
+    -- Stop supersedes any pending deferred pause
+    F2T_HAULING_STATE.pause_requested = false
 
     -- For AC jobs, check if we've accepted a job (even if cargo not yet collected)
     -- We should finish any job that's past the selection phase
@@ -235,6 +240,8 @@ function f2t_hauling_terminate()
     cecho("\n<yellow>[hauling]<reset> Terminating hauling immediately...\n")
     f2t_debug_log("[hauling] Immediate termination requested")
 
+    F2T_HAULING_STATE.pause_requested = false
+
     -- Stop any active speedwalk
     if F2T_SPEEDWALK_ACTIVE then
         f2t_debug_log("[hauling] Stopping speedwalk due to termination")
@@ -323,6 +330,7 @@ function f2t_hauling_finish_stop()
     -- Reset active state (but preserve statistics for status display)
     F2T_HAULING_STATE.active = false
     F2T_HAULING_STATE.paused = false
+    F2T_HAULING_STATE.pause_requested = false
     F2T_HAULING_STATE.paused_room_id = nil
     F2T_HAULING_STATE.stopping = false
     F2T_HAULING_STATE.mode = nil
@@ -414,7 +422,8 @@ function f2t_hauling_finish_stop()
 end
 
 -- Pause hauling
-function f2t_hauling_pause()
+--- @param immediate boolean|nil If true, pause immediately (used by system-initiated pauses e.g. Akaturi room finding). If false/nil, defer pause to next phase boundary.
+function f2t_hauling_pause(immediate)
     if not F2T_HAULING_STATE.active then
         cecho("\n<yellow>[hauling]<reset> Hauling not active\n")
         return
@@ -425,25 +434,44 @@ function f2t_hauling_pause()
         return
     end
 
-    F2T_HAULING_STATE.paused = true
+    if immediate then
+        -- Immediate pause (system-initiated): stop everything now
+        -- Supersedes any pending deferred pause
+        F2T_HAULING_STATE.pause_requested = false
+        F2T_HAULING_STATE.paused = true
 
-    -- Store speedwalk destination before stopping (so we can recompute on resume)
-    if F2T_SPEEDWALK_ACTIVE and F2T_SPEEDWALK_DESTINATION_ROOM_ID then
-        F2T_HAULING_STATE.paused_speedwalk_destination = F2T_SPEEDWALK_DESTINATION_ROOM_ID
-        f2t_debug_log("[hauling] Stored speedwalk destination: %d", F2T_SPEEDWALK_DESTINATION_ROOM_ID)
+        -- Store speedwalk destination before stopping (so we can recompute on resume)
+        if F2T_SPEEDWALK_ACTIVE and F2T_SPEEDWALK_DESTINATION_ROOM_ID then
+            F2T_HAULING_STATE.paused_speedwalk_destination = F2T_SPEEDWALK_DESTINATION_ROOM_ID
+            f2t_debug_log("[hauling] Stored speedwalk destination: %d", F2T_SPEEDWALK_DESTINATION_ROOM_ID)
+        else
+            F2T_HAULING_STATE.paused_speedwalk_destination = nil
+        end
+
+        cecho(string.format("\n<green>[hauling]<reset> Paused at phase: <cyan>%s<reset>\n",
+            F2T_HAULING_STATE.current_phase or "unknown"))
+
+        f2t_debug_log("[hauling] Paused immediately at phase: %s", F2T_HAULING_STATE.current_phase or "unknown")
+
+        -- Stop any active speedwalk (will recompute on resume)
+        if F2T_SPEEDWALK_ACTIVE then
+            f2t_debug_log("[hauling] Stopping speedwalk (will recompute on resume)")
+            f2t_map_speedwalk_stop()
+        end
     else
-        F2T_HAULING_STATE.paused_speedwalk_destination = nil
-    end
+        -- Deferred pause (user): let current operation complete, pause at next phase boundary
+        if F2T_HAULING_STATE.pause_requested then
+            cecho("\n<yellow>[hauling]<reset> Pause already pending...\n")
+            return
+        end
 
-    cecho(string.format("\n<green>[hauling]<reset> Paused at phase: <cyan>%s<reset>\n",
-        F2T_HAULING_STATE.current_phase or "unknown"))
+        F2T_HAULING_STATE.pause_requested = true
 
-    f2t_debug_log("[hauling] Paused at phase: %s", F2T_HAULING_STATE.current_phase or "unknown")
+        cecho(string.format("\n<green>[hauling]<reset> Will pause after current operation... (phase: <cyan>%s<reset>)\n",
+            F2T_HAULING_STATE.current_phase or "unknown"))
+        cecho("\n<dim_grey>Use 'haul terminate' for immediate stop<reset>\n")
 
-    -- Stop any active speedwalk (will recompute on resume)
-    if F2T_SPEEDWALK_ACTIVE then
-        f2t_debug_log("[hauling] Stopping speedwalk (will recompute on resume)")
-        f2t_map_speedwalk_stop()
+        f2t_debug_log("[hauling] Deferred pause requested at phase: %s", F2T_HAULING_STATE.current_phase or "unknown")
     end
 end
 
@@ -454,17 +482,34 @@ function f2t_hauling_resume()
         return
     end
 
+    -- Handle cancelling a pending deferred pause
+    if F2T_HAULING_STATE.pause_requested and not F2T_HAULING_STATE.paused then
+        F2T_HAULING_STATE.pause_requested = false
+        cecho("\n<green>[hauling]<reset> Pause request cancelled\n")
+        f2t_debug_log("[hauling] Deferred pause request cancelled")
+        return
+    end
+
     if not F2T_HAULING_STATE.paused then
         cecho("\n<yellow>[hauling]<reset> Not paused\n")
         return
     end
 
     F2T_HAULING_STATE.paused = false
+    F2T_HAULING_STATE.pause_requested = false
 
     cecho(string.format("\n<green>[hauling]<reset> Resuming from phase: <cyan>%s<reset>\n",
         F2T_HAULING_STATE.current_phase or "unknown"))
 
     f2t_debug_log("[hauling] Resumed from phase: %s", F2T_HAULING_STATE.current_phase or "unknown")
+
+    -- Re-establish navigation ownership (may have been cleared by stamina monitor)
+    if f2t_map_set_nav_owner then
+        f2t_map_set_nav_owner("hauling", function(reason)
+            f2t_debug_log("[hauling] Navigation interrupted by %s", reason)
+            return { auto_resume = true }
+        end)
+    end
 
     -- If we had a paused speedwalk, recompute path to the original destination
     local should_restart_phase = true
@@ -499,8 +544,10 @@ function f2t_hauling_show_status()
     -- Show status header
     if F2T_HAULING_STATE.active then
         cecho("\n<green>[hauling]<reset> Status:\n")
-        cecho(string.format("  State: <cyan>%s<reset>\n",
-            F2T_HAULING_STATE.paused and "PAUSED" or "RUNNING"))
+        local state_str = F2T_HAULING_STATE.paused and "PAUSED"
+            or F2T_HAULING_STATE.pause_requested and "PAUSING..."
+            or "RUNNING"
+        cecho(string.format("  State: <cyan>%s<reset>\n", state_str))
         cecho(string.format("  Phase: <cyan>%s<reset>\n",
             F2T_HAULING_STATE.current_phase or "none"))
     else
@@ -645,6 +692,16 @@ function f2t_hauling_transition(new_phase)
         return
     end
 
+    -- Deferred pause: convert pause_requested to actual pause at phase boundary
+    if F2T_HAULING_STATE.pause_requested then
+        F2T_HAULING_STATE.pause_requested = false
+        F2T_HAULING_STATE.paused = true
+        F2T_HAULING_STATE.current_phase = new_phase  -- Store NEXT phase for clean resume
+        cecho(string.format("\n<green>[hauling]<reset> Paused at phase: <cyan>%s<reset>\n", new_phase))
+        f2t_debug_log("[hauling] Deferred pause activated at phase: %s", new_phase)
+        return
+    end
+
     f2t_debug_log("[hauling] Transitioning to phase: %s", new_phase)
     F2T_HAULING_STATE.current_phase = new_phase
 
@@ -732,6 +789,19 @@ function f2t_hauling_transition(new_phase)
         f2t_hauling_phase_po_sell()
     elseif new_phase == "po_checking_deficits" then
         f2t_hauling_phase_po_check_deficits()
+    -- Planet Owner: next job pseudo-phase (used by deferred pause resume)
+    elseif new_phase == "po_next_job" then
+        f2t_hauling_phase_po_next_job()
+    -- Exchange mode: next commodity pseudo-phase (used by deferred pause resume)
+    elseif new_phase == "next_commodity" then
+        f2t_hauling_next_commodity()
+    -- Cycle pause: resume starts appropriate next cycle based on mode
+    elseif new_phase == "cycle_pausing" then
+        if F2T_HAULING_STATE.mode == "po" then
+            f2t_hauling_phase_po_scan_system()
+        else
+            f2t_hauling_phase_analyze()
+        end
     else
         cecho(string.format("\n<red>[hauling]<reset> Unknown phase: %s\n", new_phase))
         f2t_hauling_stop()

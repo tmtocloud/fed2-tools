@@ -8,7 +8,7 @@
 
 F2T_STAMINA_STATE = F2T_STAMINA_STATE or {
     monitoring_active = false,      -- Is stamina monitoring running?
-    current_phase = "idle",          -- Current phase: idle, navigating_to_food, buying_food, navigating_back
+    current_phase = "idle",          -- Current phase: idle, waiting_for_client_pause, navigating_to_food, buying_food, navigating_back
 
     -- Client registration (component that called us)
     client_pause_callback = nil,     -- Function to pause client activity
@@ -18,6 +18,7 @@ F2T_STAMINA_STATE = F2T_STAMINA_STATE or {
     -- State before food trip
     return_location = nil,           -- Room hash to return to after eating
     client_was_paused = false,       -- Did we pause the client?
+    wait_poll_count = 0,             -- Polls elapsed while waiting for client pause
 
     -- Current stamina tracking
     current_stamina = 0,
@@ -208,6 +209,17 @@ end
 -- Food Trip State Machine
 -- ========================================
 
+-- Save current location for return trip
+local function f2t_stamina_save_return_location()
+    if gmcp.room and gmcp.room.info and gmcp.room.info.num then
+        local system = gmcp.room.info.system or ""
+        local area = gmcp.room.info.area or ""
+        local num = gmcp.room.info.num or ""
+        F2T_STAMINA_STATE.return_location = string.format("%s.%s.%s", system, area, num)
+        f2t_debug_log("[stamina] Saved return location: %s", F2T_STAMINA_STATE.return_location)
+    end
+end
+
 -- Start food buying trip
 function f2t_stamina_start_food_trip()
     if F2T_STAMINA_STATE.current_phase ~= "idle" then
@@ -215,8 +227,31 @@ function f2t_stamina_start_food_trip()
         return
     end
 
+    -- Pause client activity (only if client is actually active)
+    local client_active = F2T_STAMINA_STATE.client_check_active and F2T_STAMINA_STATE.client_check_active()
+    if client_active and F2T_STAMINA_STATE.client_pause_callback then
+        f2t_debug_log("[stamina] Pausing client activity (client is active)")
+        F2T_STAMINA_STATE.client_pause_callback()
+        F2T_STAMINA_STATE.client_was_paused = true
+        F2T_STAMINA_STATE.wait_poll_count = 0
+        -- Wait for client to actually pause before taking over navigation
+        -- Client may use deferred pause (completes current operation first)
+        -- return_location is saved AFTER client pauses (player may be mid-transit now)
+        f2t_stamina_transition("waiting_for_client_pause")
+        return
+    else
+        f2t_debug_log("[stamina] Standalone mode - no client to pause")
+        F2T_STAMINA_STATE.client_was_paused = false
+    end
+
+    -- Standalone mode: save location now and go
+    f2t_stamina_save_return_location()
+    f2t_stamina_take_nav_and_go()
+end
+
+-- Take navigation ownership and start navigating to food
+function f2t_stamina_take_nav_and_go()
     -- Clear any existing ownership first (important if another component is paused)
-    -- This prevents losing the paused component's callback
     if f2t_map_clear_nav_owner then
         f2t_map_clear_nav_owner()
     end
@@ -231,28 +266,52 @@ function f2t_stamina_start_food_trip()
         end)
     end
 
-    -- Save current location to return to later
-    if gmcp.room and gmcp.room.info and gmcp.room.info.num then
-        local system = gmcp.room.info.system or ""
-        local area = gmcp.room.info.area or ""
-        local num = gmcp.room.info.num or ""
-        F2T_STAMINA_STATE.return_location = string.format("%s.%s.%s", system, area, num)
-        f2t_debug_log("[stamina] Saved return location: %s", F2T_STAMINA_STATE.return_location)
-    end
-
-    -- Pause client activity (only if client is actually active)
-    local client_active = F2T_STAMINA_STATE.client_check_active and F2T_STAMINA_STATE.client_check_active()
-    if client_active and F2T_STAMINA_STATE.client_pause_callback then
-        f2t_debug_log("[stamina] Pausing client activity (client is active)")
-        F2T_STAMINA_STATE.client_pause_callback()
-        F2T_STAMINA_STATE.client_was_paused = true
-    else
-        f2t_debug_log("[stamina] Standalone mode - no client to pause")
-        F2T_STAMINA_STATE.client_was_paused = false
-    end
-
     -- Navigate to food source
     f2t_stamina_transition("navigating_to_food")
+end
+
+-- Phase: Wait for client to actually pause before taking over navigation
+-- Client may use deferred pause (finishes current operation before pausing)
+function f2t_stamina_phase_wait_for_client_pause()
+    -- Client was unregistered (e.g., death terminated hauling) — abort food trip
+    if not F2T_STAMINA_STATE.client_check_active then
+        f2t_debug_log("[stamina] Client unregistered while waiting, aborting food trip")
+        cecho("\n<yellow>[stamina]<reset> Activity stopped, cancelling food trip\n")
+        F2T_STAMINA_STATE.current_phase = "idle"
+        F2T_STAMINA_STATE.client_was_paused = false
+        F2T_STAMINA_STATE.return_location = nil
+        return
+    end
+
+    -- Check if client has stopped running
+    local still_active = F2T_STAMINA_STATE.client_check_active()
+    if not still_active then
+        f2t_debug_log("[stamina] Client paused, proceeding to food trip")
+        -- Save location NOW (player is at the correct post-operation spot)
+        f2t_stamina_save_return_location()
+        f2t_stamina_take_nav_and_go()
+        return
+    end
+
+    -- Timeout after 60 seconds (120 polls at 0.5s)
+    F2T_STAMINA_STATE.wait_poll_count = (F2T_STAMINA_STATE.wait_poll_count or 0) + 1
+    if F2T_STAMINA_STATE.wait_poll_count > 120 then
+        f2t_debug_log("[stamina] Timed out waiting for client to pause, proceeding anyway")
+        cecho("\n<yellow>[stamina]<reset> Timed out waiting for activity to pause, proceeding...\n")
+        f2t_stamina_save_return_location()
+        f2t_stamina_take_nav_and_go()
+        return
+    end
+
+    -- Client still active (finishing current operation), poll again
+    if F2T_STAMINA_STATE.wait_poll_count == 1 then
+        f2t_debug_log("[stamina] Waiting for client to pause...")
+    end
+    tempTimer(0.5, function()
+        if F2T_STAMINA_STATE.current_phase == "waiting_for_client_pause" then
+            f2t_stamina_phase_wait_for_client_pause()
+        end
+    end)
 end
 
 -- Finish food trip and resume client
@@ -298,7 +357,9 @@ function f2t_stamina_transition(new_phase)
     F2T_STAMINA_STATE.current_phase = new_phase
 
     -- Execute phase
-    if new_phase == "navigating_to_food" then
+    if new_phase == "waiting_for_client_pause" then
+        f2t_stamina_phase_wait_for_client_pause()
+    elseif new_phase == "navigating_to_food" then
         f2t_stamina_phase_navigate_to_food()
     elseif new_phase == "buying_food" then
         f2t_stamina_phase_buy_food()
