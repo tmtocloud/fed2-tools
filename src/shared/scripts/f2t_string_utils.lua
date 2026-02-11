@@ -29,22 +29,6 @@ function f2t_clean_room_name(name)
     return cleaned
 end
 
-function rpad(str, len)
-    str = tostring(str)
-    if #str > len then
-        return str:sub(1, len)
-    end
-    return str .. string.rep(" ", len - #str)
-end
-
-function lpad(str, len)
-    str = tostring(str)
-    if #str > len then
-        return str:sub(1, len)
-    end
-    
-end
-
 function f2t_padding(str, len, dir)
     str = tostring(str)
 
