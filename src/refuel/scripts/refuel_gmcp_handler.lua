@@ -3,8 +3,8 @@
 
 -- Handler function for room changes
 function f2t_refuel_on_room_change()
-    -- Only run if refuel threshold is set (0 = disabled)
-    local threshold = REFUEL_THRESHOLD or 0
+    -- Read threshold from settings (0 = disabled)
+    local threshold = f2t_settings_get("shared", "refuel_threshold") or 0
     if threshold <= 0 then
         return
     end
