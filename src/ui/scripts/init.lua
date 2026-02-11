@@ -75,6 +75,9 @@ function f2t_ui_enable()
         return
     end
 
+    -- Since we do mapper in UI, we dont want any existing map widget present
+    closeMapWidget()
+
     F2T_UI_STATE.enabled = true
 
     -- If we never ran the usual initial startup, then do that
@@ -125,6 +128,9 @@ function f2t_ui_disable()
         f2t_debug_log("[ui] UI already disabled")
         return
     end
+
+    -- If we disable ui, give them their map widget back
+    openMapWidget()
 
     F2T_UI_STATE.enabled = false
 

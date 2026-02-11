@@ -27,7 +27,7 @@ function ui_trading_init()
             format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
             link = function(value, row) 
                 send("whereis " .. row.planet, false)
-                expandAlias("nav " .. row.planet)
+                expandAlias("nav " .. row.planet .. " exchange")
             end,
             linkHint = "Go to %s",
             sort_value = function(row) return row.planet:lower() end
@@ -339,19 +339,20 @@ function ui_find_best_profit()
         UI.profit_progress_bar = Geyser.Gauge:new(
             {
                 name   = "UI.profit_progress_bar",
-                x      = "16.5%",
-                y      = "-30px",
-                width  = "61%",
-                height = "25px"
+                x      = UI.trading_button_bar:get_x(),
+                y      = UI.trading_button_bar:get_y(),
+                width  = UI.trading_button_bar:get_width(),
+                height = UI.trading_button_bar:get_height()
             }
         )
 
         UI.profit_progress_bar:setFgColor("red")
-        UI.profit_progress_bar:setColor(40, 40, 40)
+        UI.profit_progress_bar:setColor(0, 0, 0)
     end
 
     UI.profit_progress_bar:setValue(1, UI.trading.profit_search.total_count,"Scanning commodities... 1/" .. UI.trading.profit_search.total_count)
 
+    UI.trading_button_bar:lower()
     UI.profit_progress_bar:show()
     UI.profit_progress_bar:raise()
 

@@ -134,7 +134,7 @@ if not F2T_UI_STATE.enabled then
       f2t_debug_log("[map] WARNING: Failed to open map widget: %s", tostring(err))
   end
 else
-    f2t_debug_log("[map} <ap widget opening skipped, mapper initialize in UI]")
+    f2t_debug_log("[map} map widget opening skipped, mapper initialize in UI]")
 end
 -- ========================================
 -- Initialization Message

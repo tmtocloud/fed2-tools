@@ -109,8 +109,8 @@ function ui_build()
 end
 
 function ui_register_trigger()
-    f2t_ui_register_trigger("checkPriceCartelData")
-    f2t_ui_register_trigger("checkPriceCartelPrint")
+    f2t_ui_register_trigger("tradingLine")
+    f2t_ui_register_trigger("tradingProfitSearch")
     f2t_ui_register_trigger("echoExchange")
     f2t_ui_register_trigger("echoExchangeBuy")
     f2t_ui_register_trigger("echoExchangeQuantity")
