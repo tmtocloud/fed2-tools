@@ -255,13 +255,6 @@ end
 
 -- Internal function to actually stop hauling (preserves statistics)
 function f2t_hauling_do_stop()
-    -- Cancel shutdown timer if pending
-    if F2T_HAULING_STATE.shutdown_timer_id then
-        killTimer(F2T_HAULING_STATE.shutdown_timer_id)
-        F2T_HAULING_STATE.shutdown_timer_id = nil
-        f2t_debug_log("[hauling] Cancelled shutdown timer")
-    end
-
     -- Clear navigation ownership
     if f2t_map_clear_nav_owner then
         f2t_map_clear_nav_owner()

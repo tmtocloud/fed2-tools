@@ -23,7 +23,7 @@ Automated hauling that adapts based on player rank:
 - Partial sell retry: tries up to `po_max_sell_attempts` exchanges (default 3)
 - Tracks deficit and excess cycle counts separately
 - Continuous loop: scan → queue → execute → re-check → cycle pause → re-scan
-- Auto-stops 4 minutes after game shutdown warning
+- Immediately stops on game shutdown warning
 - Use `haul start exchange` to force exchange mode instead
 
 ### Exchange Trading (Merchant to Financier)
@@ -380,7 +380,6 @@ F2T_HAULING_STATE = {
     po_excess_cycles = 0,               -- Excess cycles completed this session
 
     -- Shutdown timer
-    shutdown_timer_id = nil             -- Timer ID for auto-stop on game shutdown
 }
 ```
 
