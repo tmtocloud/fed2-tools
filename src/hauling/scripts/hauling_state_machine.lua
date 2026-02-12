@@ -39,6 +39,8 @@ function f2t_hauling_start(requested_mode)
     F2T_HAULING_STATE.total_cycles = 0
     F2T_HAULING_STATE.session_profit = 0
     F2T_HAULING_STATE.commodity_history = {}
+    F2T_HAULING_STATE.po_deficit_cycles = 0
+    F2T_HAULING_STATE.po_excess_cycles = 0
 
     -- Load margin threshold from settings
     F2T_HAULING_STATE.margin_threshold_pct = f2t_settings_get("hauling", "margin_threshold")
@@ -253,6 +255,13 @@ end
 
 -- Internal function to actually stop hauling (preserves statistics)
 function f2t_hauling_do_stop()
+    -- Cancel shutdown timer if pending
+    if F2T_HAULING_STATE.shutdown_timer_id then
+        killTimer(F2T_HAULING_STATE.shutdown_timer_id)
+        F2T_HAULING_STATE.shutdown_timer_id = nil
+        f2t_debug_log("[hauling] Cancelled shutdown timer")
+    end
+
     -- Clear navigation ownership
     if f2t_map_clear_nav_owner then
         f2t_map_clear_nav_owner()
@@ -284,10 +293,18 @@ function f2t_hauling_finish_stop()
     if F2T_HAULING_STATE.total_cycles > 0 then
         cecho("\n<green>[hauling]<reset> Final Session Statistics:\n")
         cecho(string.format("  Total Cycles: <cyan>%d<reset>\n", F2T_HAULING_STATE.total_cycles))
-        cecho(string.format("  Session Profit: <green>%d ig<reset>\n", F2T_HAULING_STATE.session_profit))
 
-        local avg_profit = math.floor(F2T_HAULING_STATE.session_profit / F2T_HAULING_STATE.total_cycles)
-        cecho(string.format("  Avg Profit/Cycle: <cyan>%d ig<reset>\n", avg_profit))
+        if F2T_HAULING_STATE.mode == "po" or
+           (F2T_HAULING_STATE.po_deficit_cycles > 0 or F2T_HAULING_STATE.po_excess_cycles > 0) then
+            cecho(string.format("  Deficit Cycles: <orange>%d<reset>\n",
+                F2T_HAULING_STATE.po_deficit_cycles))
+            cecho(string.format("  Excess Cycles: <yellow>%d<reset>\n",
+                F2T_HAULING_STATE.po_excess_cycles))
+        else
+            cecho(string.format("  Session Profit: <green>%d ig<reset>\n", F2T_HAULING_STATE.session_profit))
+            local avg_profit = math.floor(F2T_HAULING_STATE.session_profit / F2T_HAULING_STATE.total_cycles)
+            cecho(string.format("  Avg Profit/Cycle: <cyan>%d ig<reset>\n", avg_profit))
+        end
     end
 
     cecho("\n<green>[hauling]<reset> Hauling automation stopped\n")
@@ -309,6 +326,14 @@ function f2t_hauling_finish_stop()
         killAnonymousEventHandler(F2T_HAULING_STATE.handler_id)
         f2t_debug_log("[hauling] Cleaned up event handlers for mode: %s", F2T_HAULING_STATE.mode or "unknown")
     end
+
+    -- Kill any pending cycle pause timer
+    if F2T_HAULING_STATE.cycle_pause_timer_id then
+        killTimer(F2T_HAULING_STATE.cycle_pause_timer_id)
+        F2T_HAULING_STATE.cycle_pause_timer_id = nil
+        f2t_debug_log("[hauling] Killed pending cycle pause timer")
+    end
+    F2T_HAULING_STATE.cycle_pause_end_time = nil
 
     -- Unregister from stamina monitor (monitoring continues in standalone mode)
     f2t_stamina_unregister_client()
@@ -354,6 +379,7 @@ function f2t_hauling_finish_stop()
     F2T_HAULING_STATE.commodity_total_profit = 0
     F2T_HAULING_STATE.sell_attempts = 0
     F2T_HAULING_STATE.dump_attempts = 0
+    F2T_HAULING_STATE.cargo_clear_attempts = 0
 
     -- Clear AC job state
     F2T_HAULING_STATE.ac_job = nil
@@ -452,6 +478,13 @@ function f2t_hauling_pause(immediate)
             F2T_HAULING_STATE.current_phase or "unknown"))
 
         f2t_debug_log("[hauling] Paused immediately at phase: %s", F2T_HAULING_STATE.current_phase or "unknown")
+
+        -- Kill cycle pause timer if pausing during cycle_pausing (resume will recreate)
+        if F2T_HAULING_STATE.cycle_pause_timer_id then
+            killTimer(F2T_HAULING_STATE.cycle_pause_timer_id)
+            F2T_HAULING_STATE.cycle_pause_timer_id = nil
+            f2t_debug_log("[hauling] Killed cycle pause timer (will recreate on resume)")
+        end
 
         -- Stop any active speedwalk (will recompute on resume)
         if F2T_SPEEDWALK_ACTIVE then
@@ -566,12 +599,22 @@ function f2t_hauling_show_status()
     cecho("\n<white>Session Statistics:<reset>\n")
     cecho(string.format("  Total Cycles: <cyan>%d<reset>\n",
         F2T_HAULING_STATE.total_cycles))
-    cecho(string.format("  Session Profit: <green>%d ig<reset>\n",
-        F2T_HAULING_STATE.session_profit))
 
-    if F2T_HAULING_STATE.total_cycles > 0 then
-        local avg_profit = math.floor(F2T_HAULING_STATE.session_profit / F2T_HAULING_STATE.total_cycles)
-        cecho(string.format("  Avg Profit/Cycle: <cyan>%d ig<reset>\n", avg_profit))
+    if F2T_HAULING_STATE.mode == "po" or
+       (F2T_HAULING_STATE.po_deficit_cycles > 0 or F2T_HAULING_STATE.po_excess_cycles > 0) then
+        -- PO mode: show deficit/excess cycle breakdown
+        cecho(string.format("  Deficit Cycles: <orange>%d<reset>\n",
+            F2T_HAULING_STATE.po_deficit_cycles))
+        cecho(string.format("  Excess Cycles: <yellow>%d<reset>\n",
+            F2T_HAULING_STATE.po_excess_cycles))
+    else
+        -- Other modes: show profit stats
+        cecho(string.format("  Session Profit: <green>%d ig<reset>\n",
+            F2T_HAULING_STATE.session_profit))
+        if F2T_HAULING_STATE.total_cycles > 0 then
+            local avg_profit = math.floor(F2T_HAULING_STATE.session_profit / F2T_HAULING_STATE.total_cycles)
+            cecho(string.format("  Avg Profit/Cycle: <cyan>%d ig<reset>\n", avg_profit))
+        end
     end
 
     -- Active session details (only show when hauling is running)
@@ -795,12 +838,42 @@ function f2t_hauling_transition(new_phase)
     -- Exchange mode: next commodity pseudo-phase (used by deferred pause resume)
     elseif new_phase == "next_commodity" then
         f2t_hauling_next_commodity()
-    -- Cycle pause: resume starts appropriate next cycle based on mode
+    -- Cycle pause: resume respects remaining pause time
     elseif new_phase == "cycle_pausing" then
-        if F2T_HAULING_STATE.mode == "po" then
-            f2t_hauling_phase_po_scan_system()
+        local remaining = 0
+        if F2T_HAULING_STATE.cycle_pause_end_time then
+            remaining = F2T_HAULING_STATE.cycle_pause_end_time - os.time()
+        end
+
+        if remaining > 0 then
+            -- Re-create timer for remaining duration
+            f2t_debug_log("[hauling] Resuming cycle_pausing with %d seconds remaining", remaining)
+            cecho(string.format("\n<green>[hauling]<reset> Resuming pause, <yellow>%d seconds<reset> remaining...\n", remaining))
+
+            if F2T_HAULING_STATE.cycle_pause_timer_id then
+                killTimer(F2T_HAULING_STATE.cycle_pause_timer_id)
+            end
+            F2T_HAULING_STATE.cycle_pause_timer_id = tempTimer(remaining, function()
+                F2T_HAULING_STATE.cycle_pause_timer_id = nil
+                F2T_HAULING_STATE.cycle_pause_end_time = nil
+                if F2T_HAULING_STATE.active and not F2T_HAULING_STATE.paused
+                    and F2T_HAULING_STATE.current_phase == "cycle_pausing" then
+                    if F2T_HAULING_STATE.mode == "po" then
+                        f2t_hauling_transition("po_scanning_system")
+                    else
+                        f2t_hauling_transition("analyzing")
+                    end
+                end
+            end)
         else
-            f2t_hauling_phase_analyze()
+            -- Pause time already elapsed, proceed immediately
+            f2t_debug_log("[hauling] Cycle pause time elapsed, proceeding immediately")
+            F2T_HAULING_STATE.cycle_pause_end_time = nil
+            if F2T_HAULING_STATE.mode == "po" then
+                f2t_hauling_phase_po_scan_system()
+            else
+                f2t_hauling_phase_analyze()
+            end
         end
     else
         cecho(string.format("\n<red>[hauling]<reset> Unknown phase: %s\n", new_phase))
