@@ -1,11 +1,7 @@
 function ui_toggle_cargo_display()
-    -- Don't toggle if there's no cargo
-    local ship  = gmcp.char and gmcp.char.ship
-    local cargo = ship and ship.cargo
+    local cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
 
-    if not cargo or not next(cargo) then
-        return  -- Do nothing when no cargo exists
-    end
+    if not cargo or not next(cargo) then return end-- Do nothing when no cargo exists
 
     if UI.cargo_display_visible then
         UI.cargo_manually_hidden = true
@@ -33,9 +29,7 @@ function ui_show_cargo_display()
     UI.cargo_window:show()
 
     -- Ensure top_right_frame is above gap_filler
-    if UI.top_right_frame then
-        UI.top_right_frame:raise()
-    end
+    if UI.top_right_frame then UI.top_right_frame:raise() end
 
     -- Update display after showing
     ui_update_cargo_display()
@@ -50,22 +44,14 @@ function ui_hide_cargo_display()
     UI.cargo_window:hide()
     UI.cargo_dropdown:hide()
 
-    if UI.cargo_gap_filler then
-        UI.cargo_gap_filler:hide()
-    end
+    if UI.cargo_gap_filler then UI.cargo_gap_filler:hide() end
 
     -- Clean up buttons when hiding
     if UI.cargo_buttons then
         for _, button_set in ipairs(UI.cargo_buttons) do
-            if button_set.check_price then 
-                button_set.check_price:hide()
-            end
-            if button_set.sell then 
-                button_set.sell:hide()
-            end
-            if button_set.deliver then 
-                button_set.deliver:hide()
-            end
+            if button_set.check_price then button_set.check_price:hide() end
+            if button_set.sell        then button_set.sell:hide()        end
+            if button_set.deliver     then button_set.deliver:hide()     end
         end
     end
 end
@@ -73,15 +59,14 @@ end
 function ui_update_cargo_display()
     if not UI.cargo_window then return end
 
-    local ship  = gmcp.char and gmcp.char.ship
-    local cargo = ship and ship.cargo
+    local cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
 
     -- Clean up old buttons if they exist
     if UI.cargo_buttons then
         for _, button_set in ipairs(UI.cargo_buttons) do
             if button_set.check_price then button_set.check_price:hide() end
-            if button_set.sell then button_set.sell:hide() end
-            if button_set.deliver then button_set.deliver:hide() end
+            if button_set.sell        then button_set.sell:hide()        end
+            if button_set.deliver     then button_set.deliver:hide()     end
         end
     end
     UI.cargo_buttons = {}
@@ -90,16 +75,15 @@ function ui_update_cargo_display()
 
     -- Count cargo entries
     local cargo_count = 0
-    for _ in pairs(cargo) do
-        cargo_count = cargo_count + 1
-    end
+
+    for _ in pairs(cargo) do cargo_count = cargo_count + 1 end
 
     -- Calculate dynamic height
     local entry_height      = 65
     local header_height     = 10
     local footer_height     = 25
     local calculated_height = header_height + (cargo_count * entry_height) + footer_height
-    local max_height        = header_height + (7 * entry_height) + footer_height
+    local max_height        = header_height + (7           * entry_height) + footer_height
     local final_height      = math.min(calculated_height, max_height)
 
     -- Resize the container
@@ -114,15 +98,30 @@ function ui_update_cargo_display()
     local button_spacing = 2
 
     local entry_num = 0
+
     for key, value in pairs(cargo) do
-        entry_num = entry_num + 1
+        entry_num         = entry_num + 1
         local is_delivery = value.destination ~= nil
 
         -- Commodity name in cyan
         UI.cargo_window:cecho("<ansiCyan><b>" .. (value.commodity or "Unknown") .. "</b><reset>")
 
         if is_delivery then
-            UI.cargo_window:cecho(" → <yellow>" .. (value.destination or "Unknown") .. "<reset>\n")
+            UI.cargo_window:cecho("\n → ")
+            UI.cargo_window:cechoLink(
+                "<yellow>" .. (value.destination or "Unknown") .. "<reset>\n",
+                function()
+                    if getRoomUserData(f2t_map_resolve_location(value.destination), "fed2_system") == "Sol" then
+                        local success = f2t_map_navigate(value.destination .. " ac")
+
+                        if not success then f2t_map_navigate(value.destination) end
+                    else
+                        f2t_map_navigate(value.destination)
+                    end
+                end,
+                "Go to " .. value.destination,
+                true
+            )
         else
             UI.cargo_window:cecho("\n")
         end
@@ -146,8 +145,6 @@ function ui_update_cargo_display()
             end
 
             UI.cargo_window:cecho("\n<yellow>" .. (value.origin or "Unknown") .. "<reset>\n")
-        else
-            UI.cargo_window:cecho("\n")
         end
 
         -- Create buttons positioned on the right side using NEGATIVE x values
@@ -155,45 +152,51 @@ function ui_update_cargo_display()
 
         if is_delivery then
             -- Single Deliver button
-            buttons.deliver = Geyser.Label:new({
-                name    = "cargo_deliver_" .. key,
-                x       = -button_width - 5,  -- NEGATIVE to align from right
-                y       = y_position,
-                width   = button_width,
-                height  = button_height,
-                message = "<center>Deliver</center>"
-            }, UI.cargo_dropdown)
+            buttons.deliver = Geyser.Label:new(
+                {
+                    name    = "cargo_deliver_" .. key,
+                    x       = -button_width - 5,  -- NEGATIVE to align from right
+                    y       = y_position,
+                    width   = button_width,
+                    height  = button_height,
+                    message = "<center>Deliver</center>"
+                },
+                UI.cargo_dropdown
+            )
+
             buttons.deliver:setStyleSheet(UI.style.button_css)
-            buttons.deliver:setClickCallback(function()
-                send("deliver", false)
-            end)
+            buttons.deliver:setClickCallback(function() send("deliver", false) end)
         else
             -- Two buttons: Check Price and Sell
-            buttons.check_price = Geyser.Label:new({
-                name    = "cargo_check_" .. key,
-                x       = -(button_width * 2) - button_spacing - 5,  -- NEGATIVE - rightmost
-                y       = y_position,
-                width   = button_width,
-                height  = button_height,
-                message = "<center>Check Price</center>"
-            }, UI.cargo_dropdown)
-            buttons.check_price:setStyleSheet(UI.style.button_css)
-            buttons.check_price:setClickCallback(function()
-                send("c price " .. (value.commodity or ""):lower(), false)
-            end)
+            buttons.check_price = Geyser.Label:new(
+                {
+                    name    = "cargo_check_" .. key,
+                    x       = -(button_width * 2) - button_spacing - 5,  -- NEGATIVE - rightmost
+                    y       = y_position,
+                    width   = button_width,
+                    height  = button_height,
+                    message = "<center>Check Price</center>"
+                },
+                UI.cargo_dropdown
+            )
 
-            buttons.sell = Geyser.Label:new({
-                name    = "cargo_sell_" .. key,
-                x       = -button_width - 5,  -- NEGATIVE - next to Check Price
-                y       = y_position,
-                width   = button_width,
-                height  = button_height,
-                message = "<center>Sell</center>"
-            }, UI.cargo_dropdown)
+            buttons.check_price:setStyleSheet(UI.style.button_css)
+            buttons.check_price:setClickCallback(function() send("c price " .. (value.commodity or ""):lower(), false) end)
+
+            buttons.sell = Geyser.Label:new(
+                {
+                    name    = "cargo_sell_" .. key,
+                    x       = -button_width - 5,  -- NEGATIVE - next to Check Price
+                    y       = y_position,
+                    width   = button_width,
+                    height  = button_height,
+                    message = "<center>Sell</center>"
+                },
+                UI.cargo_dropdown
+            )
+
             buttons.sell:setStyleSheet(UI.style.button_css)
-            buttons.sell:setClickCallback(function()
-                send("sell " .. (value.commodity or ""):lower(), false)
-            end)
+            buttons.sell:setClickCallback(function() send("sell " .. (value.commodity or ""):lower(), false) end)
         end
 
         table.insert(UI.cargo_buttons, buttons)

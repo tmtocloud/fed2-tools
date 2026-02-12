@@ -1,17 +1,19 @@
 -- Build quick button cluster (in top-right corner)
 function ui_build_quick_buttons()
-    local button_width  = 35
-    local button_height = 25
-    local button_gap    = 5
-
+    -- Use percentages for responsiveness
+    local button_width_pct  = 50   -- % of parent width
+    local button_height_pct = 50   -- % of parent height
+    local button_gap_pct    = 2    -- % of parent width
+    local margin_pct        = 2    -- % margins
+    
     ------------- Score Button ---------------------------------
     UI.button_score = Geyser.Label:new(
         {
             name    = "UI.button_score",
-            x       = 5,
-            y       = 5,
-            width   = button_width,
-            height  = button_height,
+            x       = margin_pct .. "%",
+            y       = margin_pct .. "%",
+            width   = button_width_pct - margin_pct .. "%",
+            height  = button_height_pct - margin_pct .. "%",
             message = "<center>SC</center>"
         },
         UI.top_right_frame
@@ -24,10 +26,10 @@ function ui_build_quick_buttons()
     UI.button_status = Geyser.Label:new(
         {
             name    = "UI.button_status",
-            x       = 5 + button_width + button_gap,
-            y       = 5,
-            width   = button_width,
-            height  = button_height,
+            x       = (margin_pct + button_width_pct + button_gap_pct) .. "%",
+            y       = margin_pct .. "%",
+            width   = button_width_pct - button_gap_pct - margin_pct .. "%",
+            height  = button_height_pct - margin_pct .. "%",
             message = "<center>ST</center>"
         },
         UI.top_right_frame
@@ -40,10 +42,10 @@ function ui_build_quick_buttons()
     UI.button_buy_fuel = Geyser.Label:new(
         {
             name    = "UI.button_buy_fuel",
-            x       = 5,
-            y       = 5 + button_height + button_gap,
-            width   = (button_width * 2) + button_gap,
-            height  = button_height,
+            x       = margin_pct .. "%",
+            y       = (margin_pct + button_height_pct + button_gap_pct) .. "%",
+            width   = (button_width_pct * 2) - margin_pct .. "%",
+            height  = button_height_pct - margin_pct .. "%",
             message = "<center>Buy Fuel</center>"
         },
         UI.top_right_frame

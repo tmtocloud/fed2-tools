@@ -17,64 +17,73 @@ function ui_hauling_init()
     -- Define columns for hauling jobs
     local hauling_columns = {
         {
-            key = "job_number",
-            label = "Job",
-            width = 4,
-            align = "center",
+            key          = "job_number",
+            label        = "Job",
+            width        = 4,
+            align        = "center",
             header_align = "center",
-            sortable = true,
-            format = function(value) return "<blue><u>" .. value .. "</u><reset>" end,
-            link = function(value) send("ac " .. value) end,
-            linkHint = "Accept job %s",
-            sort_value = function(row)
-                return tonumber(row.job_number)
-            end
+            sortable     = true,
+            format       = function(value) return "<blue><u>" .. value .. "</u><reset>" end,
+            link         = function(value) send("ac " .. value) end,
+            linkHint     = "Accept job %s",
+            sort_value   = function(row) return tonumber(row.job_number) end
         },
         {
-            key = "origin_display",
-            label = "Origin",
-            width = 10,
-            align = "left",
-            header_align = "center",
-            sortable = true,
-            separator = " > ",        -- Arrow separator between origin and dest in DATA
+            key              = "origin_display",
+            label            = "Origin",
+            width            = 10,
+            align            = "left",
+            header_align     = "center",
+            sortable         = true,
+            separator        = " > ",        -- Arrow separator between origin and dest in DATA
             header_separator = "   ",
-            format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
-            link = function(value, row) 
-                send("whereis " .. row.origin, false)
-                expandAlias("nav " .. row.origin)
-            end,
-            linkHint = "Go to %s",
-            sort_value = function(row)
-                return row.origin:lower()
-            end
-        },
-        {
-            key = "dest_display",
-            label = "Dest",
-            width = 10,
-            align = "left",
-            header_align = "center",
-            sortable = true,
-            format = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+            format           = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+
             link = function(value, row)
-                send("whereis " .. row.dest, false)
-                expandAlias("nav " .. row.dest)
+                if getRoomUserData(f2t_map_resolve_location(row.origin), "fed2_system") == "Sol" then
+                    local success = f2t_map_navigate(row.origin .. " ac")
+
+                    if not success then f2t_map_navigate(row.origin) end
+                else
+                    f2t_map_navigate(row.origin)
+                end
             end,
-            linkHint = "Go to %s",
-            sort_value = function(row)
-                return row.dest:lower()
-            end
+
+            linkHint   = "Go to %s",
+            sort_value = function(row) return row.origin:lower() end
         },
         {
-            key = "moves",
-            label = "GTU",
-            width = 4,
-            align = "center",
+            key          = "dest_display",
+            label        = "Dest",
+            width        = 10,
+            align        = "left",
             header_align = "center",
-            sortable = false,
+            sortable     = true,
+            format       = function(value) return "<ansiCyan>" .. value .. "<reset>" end,
+
+            link = function(value, row)
+                if getRoomUserData(f2t_map_resolve_location(row.dest), "fed2_system") == "Sol" then
+                    local success = f2t_map_navigate(row.dest .. " ac")
+
+                    if not success then f2t_map_navigate(row.dest) end
+                else
+                    f2t_map_navigate(row.dest)
+                end
+            end,
+
+            linkHint   = "Go to %s",
+            sort_value = function(row) return row.dest:lower() end
+        },
+        {
+            key          = "moves",
+            label        = "GTU",
+            width        = 4,
+            align        = "center",
+            header_align = "center",
+            sortable     = false,
+
             format = function(value, row)
-                local dist = row.distance
+                local dist    = row.distance
                 local allowed = row.allowed_moves
 
                 if dist then
@@ -95,18 +104,19 @@ function ui_hauling_init()
             end
         },
         {
-            key = "pay",
-            label = "Pay",
-            width = 13,
-            align = "left",
+            key          = "pay",
+            label        = "Pay",
+            width        = 13,
+            align        = "left",
             header_align = "center",
-            sortable = true,
+            sortable     = true,
             default_sort = "desc",
             allowed_sort = "desc",
+
             format = function(value, row)
                 local base_text = tostring(row.base_pay) .. "ig"
-
                 local pay_color
+
                 if row.pay_type == "bonus" then
                     pay_color = "<ansiGreen>"
                 elseif row.pay_type == "penalty" then
@@ -117,17 +127,16 @@ function ui_hauling_init()
 
                 return "<b>" .. row.base_pay .. "</b>ig (" .. pay_color .. "<b>" .. row.effective_pay .. "</b><reset>)"
             end,
-            sort_value = function(row)
-                return row.effective_pay
-            end
+
+            sort_value = function(row) return row.effective_pay end
         }
     }
     
     -- Optional: Configure separators
     local separators = {
-        column = " ",    -- Single space between columns (default)
-        header = nil,    -- No header separator
-        row = nil        -- No row separators
+        column = " ", -- Single space between columns (default)
+        header = nil, -- No header separator
+        row    = nil  -- No row separators
     }
     
     -- Create the table
@@ -165,18 +174,18 @@ function ui_on_hauling_job(job_number, origin, dest, allowed_moves, pay_per_ton)
     end
     
     local job_data = {
-        job_number = job_number,
-        origin = origin,
-        dest = dest,
+        job_number     = job_number,
+        origin         = origin,
+        dest           = dest,
         origin_display = stripThe(origin),
-        dest_display = stripThe(dest),
-        allowed_moves = allowed_moves_num,
-        base_pay = base_pay,
-        distance = distance,
-        effective_pay = effective_pay,
-        pay_type = pay_type,
-        moves = allowed_moves_num .. "/" .. (distance or "?"),
-        pay = base_pay
+        dest_display   = stripThe(dest),
+        allowed_moves  = allowed_moves_num,
+        base_pay       = base_pay,
+        distance       = distance,
+        effective_pay  = effective_pay,
+        pay_type       = pay_type,
+        moves          = allowed_moves_num .. "/" .. (distance or "?"),
+        pay            = base_pay
     }
     
     -- Add to table data
