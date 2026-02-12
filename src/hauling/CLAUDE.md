@@ -12,12 +12,18 @@ Automated hauling that adapts based on player rank:
 ### Planet Owner Trading (Founder+)
 - Scans current system for planets and verifies ownership via GMCP (once at startup)
 - Captures exchange data remotely for all planets (no navigation needed)
-- Identifies production deficits (stock at -525) and excesses (stock at max)
+- Identifies production deficits and excesses using configurable thresholds:
+  - Deficits: stock at or below `po_deficit_threshold` (default -525)
+  - Excesses: stock at or above `po_excess_threshold` (default 20000)
+- Deficit lot count adapts to actual shortage (up to 7 lots)
 - Resolves sources/destinations: owned planets first, then cartel price check
+- Prevents buying from and selling to the same planet
 - Ships >= 14 lots can bundle 2 jobs with same sell destination per trip
-- Always buys exactly 7 lots per commodity
 - After each sell, re-scans exchanges remotely for new deficits (priority insertion)
+- Partial sell retry: tries up to `po_max_sell_attempts` exchanges (default 3)
+- Tracks deficit and excess cycle counts separately
 - Continuous loop: scan → queue → execute → re-check → cycle pause → re-scan
+- Auto-stops 4 minutes after game shutdown warning
 - Use `haul start exchange` to force exchange mode instead
 
 ### Exchange Trading (Merchant to Financier)
@@ -89,6 +95,10 @@ haul settings clear <name>              # Reset to default
 # - cycle_pause (0-300): Seconds to pause after completing all 5 commodities
 # - use_safe_room (boolean): Return to safe room on completion, failure, or cycle pause
 # - excluded_commodities (string): Comma-separated list of commodities to exclude from trading
+# - po_mode (both|deficit): PO hauling mode
+# - po_deficit_threshold (-525 to -75): Stock level to trigger deficit hauling
+# - po_excess_threshold (750-20000): Stock level to trigger excess selling
+# - po_max_sell_attempts (1-10): Max sell locations before jettisoning
 ```
 
 **Examples:**
@@ -105,6 +115,10 @@ f2t settings set safe_room "earth"      # Set safe room destination
 
 haul settings set excluded_commodities "alloys,cereals"  # Exclude specific commodities
 haul settings clear excluded_commodities                 # Clear exclusion list
+
+haul settings set po_deficit_threshold -375   # Trigger deficit at 5 lots short (instead of 7)
+haul settings set po_excess_threshold 3000    # Trigger excess at 3000+ tons
+haul settings set po_max_sell_attempts 5      # Try up to 5 sell locations before jettison
 ```
 
 ## How It Works
@@ -361,7 +375,12 @@ F2T_HAULING_STATE = {
     po_scan_count = 0,                  -- Full scan iterations completed
     po_deficit_count = 0,               -- Deficits found in last scan
     po_excess_count = 0,                -- Excesses found in last scan
-    po_scan_planets = {}                -- Planets to scan during exchange scan
+    po_scan_planets = {},               -- Planets to scan during exchange scan
+    po_deficit_cycles = 0,              -- Deficit cycles completed this session
+    po_excess_cycles = 0,               -- Excess cycles completed this session
+
+    -- Shutdown timer
+    shutdown_timer_id = nil             -- Timer ID for auto-stop on game shutdown
 }
 ```
 
@@ -477,6 +496,10 @@ The hauling system uses event handlers instead of fixed timers:
 - `cycle_pause` (number, 0-300, default: `60`) - Seconds to pause after completing all 5 commodities (0 = no pause)
 - `use_safe_room` (boolean, default: `false`) - Return to safe room on completion, failure, or cycle pause
 - `excluded_commodities` (string, default: `""`) - Comma-separated list of commodities to exclude from trading
+- `po_mode` (string, default: `"both"`) - PO hauling mode: 'both' (deficit + excess) or 'deficit' (deficit only)
+- `po_deficit_threshold` (number, -525 to -75, default: `-525`) - Stock level at or below which deficit hauling triggers
+- `po_excess_threshold` (number, 750-20000, default: `20000`) - Stock level at or above which excess selling triggers
+- `po_max_sell_attempts` (number, 1-10, default: `3`) - Maximum sell locations to try before jettisoning cargo
 
 **Safe Room Integration:**
 

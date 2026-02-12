@@ -89,7 +89,17 @@ F2T_HAULING_STATE = {
     po_deficit_count = 0,            -- Deficits found in last scan
     po_excess_count = 0,             -- Excesses found in last scan
     po_sell_attempts = 0,            -- Sell attempt counter for partial sell retry
-    po_scan_planets = {}             -- Planets to scan during exchange scan
+    cargo_clear_attempts = 0,        -- Retry counter for sell-then-jettison in buy phase
+    po_scan_planets = {},            -- Planets to scan during exchange scan
+    po_deficit_cycles = 0,           -- Total deficit cycles completed this session
+    po_excess_cycles = 0,            -- Total excess cycles completed this session
+
+    -- Cycle pause tracking
+    cycle_pause_timer_id = nil,      -- Timer ID for cycle pause (so we can kill it on stop)
+    cycle_pause_end_time = nil,      -- os.time() when current cycle pause should end (for resume)
+
+    -- Shutdown timer
+    shutdown_timer_id = nil          -- Timer ID for auto-stop on game shutdown
 }
 
 -- Settings registration
@@ -145,6 +155,42 @@ f2t_settings_register("hauling", "po_mode", {
     validator = function(value)
         if value ~= "both" and value ~= "deficit" then
             return false, "Must be 'both' or 'deficit'"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "po_deficit_threshold", {
+    description = "Stock level at or below which deficit hauling triggers",
+    default = -525,
+    validator = function(value)
+        local num = tonumber(value)
+        if not num or num < -525 or num > -75 then
+            return false, "Must be a number between -525 and -75"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "po_excess_threshold", {
+    description = "Stock level at or above which excess selling triggers",
+    default = 20000,
+    validator = function(value)
+        local num = tonumber(value)
+        if not num or num < 750 or num > 20000 then
+            return false, "Must be a number between 750 and 20000"
+        end
+        return true
+    end
+})
+
+f2t_settings_register("hauling", "po_max_sell_attempts", {
+    description = "Maximum sell locations to try before jettisoning cargo",
+    default = 3,
+    validator = function(value)
+        local num = tonumber(value)
+        if not num or num < 1 or num > 10 then
+            return false, "Must be a number between 1 and 10"
         end
         return true
     end
