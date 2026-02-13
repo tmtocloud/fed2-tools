@@ -280,7 +280,7 @@ function ui_toggle_movement_buttons()
         UI.in_out_box:hide()
         UI.button_show_hide:echo("<center>Show Buttons</center>")
         UI.button_board:hide()
-        UI.press:hide()
+        UI.button_press:hide()
         UI.movement.visible = false
     else
         UI.cardinal_box:show()
@@ -288,7 +288,7 @@ function ui_toggle_movement_buttons()
         UI.in_out_box:show()
         UI.button_show_hide:echo("<center>Hide Buttons</center>")
         UI.button_board:show()
-        UI.press:show()
+        UI.button_press:show()
         UI.movement.visible = true
     end
 end
