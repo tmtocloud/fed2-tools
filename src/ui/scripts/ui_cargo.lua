@@ -1,7 +1,7 @@
 function ui_toggle_cargo_display()
     local cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
 
-    if not cargo or not next(cargo) then return end-- Do nothing when no cargo exists
+    if not cargo or not next(cargo) then return end
 
     if UI.cargo_display_visible then
         UI.cargo_manually_hidden = true
@@ -13,40 +13,32 @@ function ui_toggle_cargo_display()
 end
 
 function ui_show_cargo_display()
-    if not UI.cargo_dropdown or not UI.cargo_window then return end
+    if not UI.cargo_dropdown then return end
 
     UI.cargo_display_visible = true
 
-    -- Show gap filler first - position it between console and top_right_frame
     if UI.cargo_gap_filler then
         UI.cargo_gap_filler:show()
-        UI.cargo_gap_filler:raise()  -- Above console
+        UI.cargo_gap_filler:raise()
     end
 
-    -- Show cargo dropdown and window - above scrollbar
     UI.cargo_dropdown:show()
     UI.cargo_dropdown:raise()
-    UI.cargo_window:show()
 
-    -- Ensure top_right_frame is above gap_filler
     if UI.top_right_frame then UI.top_right_frame:raise() end
 
-    -- Update display after showing
     ui_update_cargo_display()
 end
 
 function ui_hide_cargo_display()
-    if not UI.cargo_dropdown or not UI.cargo_window then return end
+    if not UI.cargo_dropdown then return end
 
     UI.cargo_display_visible = false
 
-    -- Hide cargo window and dropdown
-    UI.cargo_window:hide()
     UI.cargo_dropdown:hide()
 
     if UI.cargo_gap_filler then UI.cargo_gap_filler:hide() end
 
-    -- Clean up buttons when hiding
     if UI.cargo_buttons then
         for _, button_set in ipairs(UI.cargo_buttons) do
             if button_set.check_price then button_set.check_price:hide() end
@@ -57,11 +49,18 @@ function ui_hide_cargo_display()
 end
 
 function ui_update_cargo_display()
-    if not UI.cargo_window then return end
+    if not UI.cargo_dropdown then return end
 
     local cargo = gmcp.char and gmcp.char.ship and gmcp.char.ship.cargo
 
-    -- Clean up old buttons if they exist
+    -- Clean up old elements COMPLETELY (destroy, not just hide)
+    if UI.cargo_entries then
+        for _, entry_container in ipairs(UI.cargo_entries) do
+            entry_container:hide()
+        end
+    end
+    UI.cargo_entries = {}
+    
     if UI.cargo_buttons then
         for _, button_set in ipairs(UI.cargo_buttons) do
             if button_set.check_price then button_set.check_price:hide() end
@@ -71,49 +70,92 @@ function ui_update_cargo_display()
     end
     UI.cargo_buttons = {}
 
-    UI.cargo_window:clear()
+    -- Clean up old separators and footer
+    if UI.cargo_separators then
+        for _, sep in ipairs(UI.cargo_separators) do
+            sep:hide()
+        end
+    end
+    UI.cargo_separators = {}
+    
+    if UI.cargo_footer then
+        UI.cargo_footer:hide()
+    end
 
     -- Count cargo entries
     local cargo_count = 0
 
     for _ in pairs(cargo) do cargo_count = cargo_count + 1 end
 
-    -- Calculate dynamic height
-    local entry_height      = 65
-    local header_height     = 10
-    local footer_height     = 25
-    local calculated_height = header_height + (cargo_count * entry_height) + footer_height
-    local max_height        = header_height + (7           * entry_height) + footer_height
-    local final_height      = math.min(calculated_height, max_height)
+    -- Calculate heights as percentages
+    local max_entries     = 8  -- Maximum entries to show before container fills
+    local visible_entries = math.min(cargo_count, max_entries)
+    
+    local footer_height_pct      = 8   -- Footer takes 8% of dropdown height
+    local separator_height_pct   = 0.5 -- Each separator takes 0.5%
+    local total_separator_height = (visible_entries - 1) * separator_height_pct
+    
+    -- Remaining space divided among entries
+    local available_for_entries = 100 - footer_height_pct - total_separator_height
+    local entry_height_pct      = available_for_entries / visible_entries
 
-    -- Resize the container
-    UI.cargo_dropdown:resize(nil, final_height)
+    -- Set dropdown height as percentage of main window
+    -- This determines how much vertical space the cargo display uses
+    local dropdown_height_pct = math.min(50, 5 + (visible_entries * 5))  -- 5% per entry, max 40%
+    UI.cargo_dropdown:resize(nil, dropdown_height_pct .. "%")
 
-    -- Count total tons
+    -- Calculate total tons
     local total_tons = cargo_count * 75
 
-    local y_position     = header_height
-    local button_height  = 20
-    local button_width   = 70
-    local button_spacing = 2
-
+    local current_y_pct = 0
     local entry_num = 0
 
     for key, value in pairs(cargo) do
-        entry_num         = entry_num + 1
+        entry_num = entry_num + 1
         local is_delivery = value.destination ~= nil
 
-        -- Commodity name in cyan
-        UI.cargo_window:cecho("<ansiCyan><b>" .. (value.commodity or "Unknown") .. "</b><reset>")
+        -- Create entry container with UNIQUE name using entry_num
+        local entry = Geyser.Container:new(
+            {
+                name   = "cargo_entry_container_" .. entry_num,
+                x      = "0%",
+                y      = current_y_pct .. "%",
+                width  = "100%",
+                height = entry_height_pct .. "%",
+            },
+            UI.cargo_dropdown
+        )
+        
+        -- Track the container for cleanup
+        table.insert(UI.cargo_entries, entry)
 
+        -- Text miniconsole (left side, 65% width) with UNIQUE name
+        local entry_text = Geyser.MiniConsole:new(
+            {
+                name      = "cargo_entry_text_" .. entry_num,
+                x         = "0%",
+                y         = "20%",
+                width     = "65%",
+                height    = "100%",
+                autoWrap  = true,
+                scrollBar = false,
+                fontSize  = text_size,
+                color     = "black",
+            },
+            entry
+        )
+        entry_text:clear()
+
+        -- Commodity name in cyan
+        entry_text:cecho("<ansiCyan><b>" .. (value.commodity or "Unknown") .. "</b><reset>")
+        
         if is_delivery then
-            UI.cargo_window:cecho("\n → ")
-            UI.cargo_window:cechoLink(
-                "<yellow>" .. (value.destination or "Unknown") .. "<reset>\n",
+            entry_text:cecho(" → ")
+            entry_text:cechoLink(
+                "<yellow>" .. (value.destination or "Unknown") .. "<reset>",
                 function()
                     if getRoomUserData(f2t_map_resolve_location(value.destination), "fed2_system") == "Sol" then
                         local success = f2t_map_navigate(value.destination .. " ac")
-
                         if not success then f2t_map_navigate(value.destination) end
                     else
                         f2t_map_navigate(value.destination)
@@ -123,96 +165,117 @@ function ui_update_cargo_display()
                 true
             )
         else
-            UI.cargo_window:cecho("\n")
-        end
-
-        -- Line 2: Price/profit info or origin
-        if not is_delivery then
+            -- Price info
             local cost = tonumber(value.cost) or 0
             local base = tonumber(value.base) or 0
             local diff = base - cost
 
-            UI.cargo_window:cecho("<white><b>" .. cost .. "</b>ig<reset> ")
-            UI.cargo_window:cecho("(base: <dim_grey>" .. base .. "ig<reset>) ")
+            entry_text:cecho("\n<white><b>" .. cost .. "</b>ig<reset> ")
+            entry_text:cecho("(base: <dim_grey>" .. base .. "ig<reset>) ")
 
-            -- Profit/loss
             if diff > 0 then
-                UI.cargo_window:cecho("<green>+<b>" .. diff .. "</b>ig<reset>")
+                entry_text:cecho("<green>+<b>" .. diff .. "</b>ig<reset>")
             elseif diff < 0 then
-                UI.cargo_window:cecho("<red><b>" .. diff .. "</b>ig<reset>")
+                entry_text:cecho("<red><b>" .. diff .. "</b>ig<reset>")
             else
-                UI.cargo_window:cecho("<white>0ig<reset>")
+                entry_text:cecho("<white>0ig<reset>")
             end
 
-            UI.cargo_window:cecho("\n<yellow>" .. (value.origin or "Unknown") .. "<reset>\n")
+            entry_text:cecho("\n<yellow>" .. (value.origin or "Unknown") .. "<reset>")
         end
 
-        -- Create buttons positioned on the right side using NEGATIVE x values
+        -- Buttons (right side, starting at 67%)
         local buttons = {}
 
         if is_delivery then
-            -- Single Deliver button
             buttons.deliver = Geyser.Label:new(
                 {
-                    name    = "cargo_deliver_" .. key,
-                    x       = -button_width - 5,  -- NEGATIVE to align from right
-                    y       = y_position,
-                    width   = button_width,
-                    height  = button_height,
+                    name    = "cargo_deliver_" .. entry_num,
+                    x       = "60%",
+                    y       = "30%",
+                    width   = "19%",
+                    height  = "35%",
                     message = "<center>Deliver</center>"
                 },
-                UI.cargo_dropdown
+                entry
             )
-
             buttons.deliver:setStyleSheet(UI.style.button_css)
             buttons.deliver:setClickCallback(function() send("deliver", false) end)
         else
-            -- Two buttons: Check Price and Sell
             buttons.check_price = Geyser.Label:new(
                 {
-                    name    = "cargo_check_" .. key,
-                    x       = -(button_width * 2) - button_spacing - 5,  -- NEGATIVE - rightmost
-                    y       = y_position,
-                    width   = button_width,
-                    height  = button_height,
+                    name    = "cargo_check_" .. entry_num,
+                    x       = "60%",
+                    y       = "30%",
+                    width   = "19%",
+                    height  = "35%",
                     message = "<center>Check Price</center>"
                 },
-                UI.cargo_dropdown
+                entry
             )
-
             buttons.check_price:setStyleSheet(UI.style.button_css)
-            buttons.check_price:setClickCallback(function() send("c price " .. (value.commodity or ""):lower(), false) end)
+            buttons.check_price:setClickCallback(function() 
+                send("c price " .. (value.commodity or ""):lower(), false) 
+            end)
 
             buttons.sell = Geyser.Label:new(
                 {
-                    name    = "cargo_sell_" .. key,
-                    x       = -button_width - 5,  -- NEGATIVE - next to Check Price
-                    y       = y_position,
-                    width   = button_width,
-                    height  = button_height,
+                    name    = "cargo_sell_" .. entry_num,
+                    x       = "80%",
+                    y       = "30%",
+                    width   = "9%",
+                    height  = "35%",
                     message = "<center>Sell</center>"
                 },
-                UI.cargo_dropdown
+                entry
             )
-
             buttons.sell:setStyleSheet(UI.style.button_css)
-            buttons.sell:setClickCallback(function() send("sell " .. (value.commodity or ""):lower(), false) end)
+            buttons.sell:setClickCallback(function() 
+                send("sell " .. (value.commodity or ""):lower(), false) 
+            end)
         end
 
         table.insert(UI.cargo_buttons, buttons)
 
-        -- Move to next entry position
-        y_position = y_position + entry_height - 15
+        current_y_pct = current_y_pct + entry_height_pct
 
-        -- Add separator line between entries (but not after last one)
-        if entry_num < cargo_count then
-            UI.cargo_window:cecho("<dim_grey>───────────────────<reset>\n")
-        else
-            UI.cargo_window:echo("\n")
+        -- Add separator line (except after last entry)
+        if entry_num < visible_entries then
+            local separator = Geyser.Label:new(
+                {
+                    name = "cargo_separator_" .. entry_num,
+                    x    = "0%",
+                    y    = current_y_pct .. "%",
+                    width = "100%",
+                    height = separator_height_pct .. "%",
+                },
+                UI.cargo_dropdown
+            )
+            separator:setStyleSheet([[
+                background-color: rgba(255,255,255,0.46)
+            ]])
+            
+            table.insert(UI.cargo_separators, separator)
+            current_y_pct = current_y_pct + separator_height_pct
         end
     end
 
-    -- Footer
-    UI.cargo_window:cecho("<dim_grey>─────────────────────────<reset>\n")
-    UI.cargo_window:cecho("<dim_grey>Total: " .. total_tons .. " tons<reset>")
+    -- Footer with total tonnage
+    UI.cargo_footer = Geyser.MiniConsole:new(
+        {
+            name      = "cargo_footer",
+            x         = "0%",
+            y         = current_y_pct .. "%",
+            width     = "100%",
+            height    = footer_height_pct .. "%",
+            autoWrap  = false,
+            scrollBar = false,
+            fontSize  = text_size,
+            color     = "black",
+        },
+        UI.cargo_dropdown
+    )
+    UI.cargo_footer:clear()
+    UI.cargo_footer:cecho("<dim_grey>─────────────────────────<reset>\n")
+    UI.cargo_footer:cecho("<dim_grey>Total: <white><b>" .. total_tons .. "</b> tons<reset>")
 end

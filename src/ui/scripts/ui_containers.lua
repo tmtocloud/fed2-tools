@@ -161,19 +161,6 @@ function ui_create_containers()
     UI.cargo_dropdown:lockContainer("border")
     UI.cargo_dropdown:hide()
 
-    -- Put cargo console in cargo dropdown
-    UI.cargo_window = Geyser.MiniConsole:new({
-        name      = "UI.cargo_window",
-        x         = "0%",
-        y         = "0%",
-        width     = "100%",
-        height    = "100%",
-        autoWrap  = true,
-        scrollBar = false,
-        fontSize  = text_size,
-        color     = "black",
-    }, UI.cargo_dropdown)
-
     -- Capture initial state
     tempTimer(0.1, ui_capture_state)
 

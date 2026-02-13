@@ -3,8 +3,8 @@ function ui_build_tabs()
     UI.vbox_left = Geyser.VBox:new(
         {
             name   = "UI.vbox_left",
-            x      = 0,
-            y      = 0,
+            x      = "0%",
+            y      = "0%",
             width  = "100%",
             height = "100%"
         },
@@ -15,8 +15,8 @@ function ui_build_tabs()
     UI.vbox_right = Geyser.VBox:new(
         {
             name   = "UI.vbox_right",
-            x      = 0,
-            y      = 0,
+            x      = "0%",
+            y      = "0%",
             width  = "100%",
             height = "100%"
         },
@@ -77,7 +77,7 @@ function ui_build_tabs()
         UI.vbox_right
     )
 
-    -- Place Cargo/Hauling/Trading tabs on the bottom of the Right Navigation Frame (default location)
+    -- Place Hauling/Trading tabs on the bottom of the Right Navigation Frame (default location)
     UI.tab_bottom_right = Adjustable.TabWindow:new(
         {
             name             = "UI.tab_bottom_right",
@@ -169,8 +169,8 @@ function ui_build_tab_content()
     UI.mapper = Geyser.Mapper:new(
         {
             name   = "fedmap",
-            x      = 0,
-            y      = 0, 
+            x      = "0%",
+            y      = "0%", 
             width  = "100%",
             height = "100%",
         },
@@ -193,8 +193,8 @@ function ui_build_tab_content()
     UI.hauling_button_bar = Geyser.HBox:new(
         {
             name   = "UI.hauling_button_bar",
-            x      = 0,
-            y      = 0,
+            x      = "0%",
+            y      = "0%",
             width  = "100%",
             height = "25px",
         },
@@ -232,15 +232,14 @@ function ui_build_tab_content()
     UI.trading_button_bar = Geyser.HBox:new(
         {
             name   = "UI.trading_button_bar",
-            x      = 0,
-            y      = 0,
+            x      = "0%",
+            y      = "0%",
             width  = "100%",
             height = "25px",
         },
         UI.trading_container
     )
 
-    -- Cargo display window below button bar
     UI.trading_window = Geyser.MiniConsole:new(
         {
             name      = "UI.trading_window",

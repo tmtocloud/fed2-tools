@@ -42,19 +42,10 @@ QScrollBar::sub-page:vertical {
 
 UI.style.frame_css = [[
     /* Slightly translucent light panel so frames read on black backgrounds */
-    background: rgba(255,255,255,0.035);            /* a touch of light so panels aren't 'black on black' */
-    border-radius: 1px;
-    padding: 1px;
-    margin: 1px;
+    background: rgba(255,255,255,0.035); /* a touch of light so panels aren't 'black on black' */
 
     /* Thin, visible light border that contrasts on black */
     border: 2px solid rgba(255,255,255,0.46);
-
-    /* Soft inner sheen and faint outer halo for separation from the black background */
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.10),    /* inner top highlight */
-        0 10px 30px rgba(0,0,0,0.6),            /* soft silhouette */
-        0 0 18px rgba(255,255,255,0.02);        /* subtle light rim to help edges read */
 
     /* Faster, crisp interactions */
     transition: transform 120ms ease, box-shadow 160ms ease, border-color 120ms ease, background 120ms ease;
