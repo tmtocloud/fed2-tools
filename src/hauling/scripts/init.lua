@@ -97,9 +97,6 @@ F2T_HAULING_STATE = {
     -- Cycle pause tracking
     cycle_pause_timer_id = nil,      -- Timer ID for cycle pause (so we can kill it on stop)
     cycle_pause_end_time = nil,      -- os.time() when current cycle pause should end (for resume)
-
-    -- Shutdown timer
-    shutdown_timer_id = nil          -- Timer ID for auto-stop on game shutdown
 }
 
 -- Settings registration
