@@ -576,6 +576,12 @@ function f2t_hauling_show_status()
         cecho(string.format("  State: <cyan>%s<reset>\n", state_str))
         cecho(string.format("  Phase: <cyan>%s<reset>\n",
             F2T_HAULING_STATE.current_phase or "none"))
+        if F2T_HAULING_STATE.current_phase == "cycle_pausing" and F2T_HAULING_STATE.cycle_pause_end_time then
+            local remaining = F2T_HAULING_STATE.cycle_pause_end_time - os.time()
+            if remaining > 0 then
+                cecho(string.format("  Resuming in: <cyan>%ds<reset>\n", remaining))
+            end
+        end
     else
         cecho("\n<green>[hauling]<reset> Status: <yellow>STOPPED<reset>\n")
 
@@ -629,69 +635,72 @@ function f2t_hauling_show_status()
             cecho(string.format("  Scan Iterations: <cyan>%d<reset>\n",
                 F2T_HAULING_STATE.po_scan_count))
 
-            -- Current job
-            local job = F2T_HAULING_STATE.po_current_job
-            if job then
-                local type_color = job.type == "deficit" and "orange" or "yellow"
-                cecho(string.format("\n<white>Current Job:<reset> <%s>%s<reset> <cyan>%s<reset>\n",
-                    type_color, job.type, job.commodity))
-                cecho(string.format("  Buy: <cyan>%s<reset> → Sell: <cyan>%s<reset>\n",
-                    job.buy_planet or "?", job.sell_planet or "?"))
-                if job.bundled_commodity then
-                    cecho(string.format("  Bundled: <cyan>%s<reset> (%s → %s)\n",
-                        job.bundled_commodity,
-                        job.bundled_buy_planet or "?", job.bundled_sell_planet or "?"))
+            -- Current job and queue (hide during cycle pause - queue is exhausted)
+            if F2T_HAULING_STATE.current_phase ~= "cycle_pausing" then
+                local job = F2T_HAULING_STATE.po_current_job
+                if job then
+                    local type_color = job.type == "deficit" and "orange" or "yellow"
+                    cecho(string.format("\n<white>Current Job:<reset> <%s>%s<reset> <cyan>%s<reset>\n",
+                        type_color, job.type, job.commodity))
+                    cecho(string.format("  Buy: <cyan>%s<reset> → Sell: <cyan>%s<reset>\n",
+                        job.buy_planet or "?", job.sell_planet or "?"))
+                    if job.bundled_commodity then
+                        cecho(string.format("  Bundled: <cyan>%s<reset> (%s → %s)\n",
+                            job.bundled_commodity,
+                            job.bundled_buy_planet or "?", job.bundled_sell_planet or "?"))
+                    end
                 end
-            end
 
-            -- Job queue progress
-            local queue = F2T_HAULING_STATE.po_job_queue
-            if queue and #queue > 0 then
-                cecho(string.format("\n<white>Job Queue:<reset> <cyan>%d/%d<reset>\n",
-                    F2T_HAULING_STATE.po_job_index, #queue))
-                for i, qjob in ipairs(queue) do
-                    local marker = i == F2T_HAULING_STATE.po_job_index and " <yellow>*<reset>" or ""
-                    local tc = qjob.type == "deficit" and "red" or "yellow"
-                    local bundle_info = qjob.bundled_commodity
-                        and string.format(" + %s", qjob.bundled_commodity) or ""
-                    cecho(string.format("  %d. <%s>%s<reset> <cyan>%s<reset>%s (%s → %s)%s\n",
-                        i, tc, qjob.type, qjob.commodity, bundle_info,
-                        qjob.buy_planet or "?", qjob.sell_planet or "?", marker))
+                -- Job queue progress
+                local queue = F2T_HAULING_STATE.po_job_queue
+                if queue and #queue > 0 then
+                    cecho(string.format("\n<white>Job Queue:<reset> <cyan>%d/%d<reset>\n",
+                        F2T_HAULING_STATE.po_job_index, #queue))
+                    for i, qjob in ipairs(queue) do
+                        local marker = i == F2T_HAULING_STATE.po_job_index and " <yellow>*<reset>" or ""
+                        local tc = qjob.type == "deficit" and "red" or "yellow"
+                        local bundle_info = qjob.bundled_commodity
+                            and string.format(" + %s", qjob.bundled_commodity) or ""
+                        cecho(string.format("  %d. <%s>%s<reset> <cyan>%s<reset>%s (%s → %s)%s\n",
+                            i, tc, qjob.type, qjob.commodity, bundle_info,
+                            qjob.buy_planet or "?", qjob.sell_planet or "?", marker))
+                    end
                 end
             end
         end
 
-        -- Commodity queue (exchange mode)
-        if F2T_HAULING_STATE.commodity_queue and #F2T_HAULING_STATE.commodity_queue > 0 then
-            cecho(string.format("\n<white>Commodity Queue:<reset> <cyan>%d/%d<reset>\n",
-                F2T_HAULING_STATE.queue_index, #F2T_HAULING_STATE.commodity_queue))
-            for i, comm in ipairs(F2T_HAULING_STATE.commodity_queue) do
-                local marker = i == F2T_HAULING_STATE.queue_index and " <yellow>*<reset>" or ""
-                cecho(string.format("  %d. <cyan>%s<reset> (profit: %d ig/ton)%s\n",
-                    i, comm.commodity, comm.expected_profit, marker))
-            end
-        end
-
-        -- Current commodity
-        if F2T_HAULING_STATE.current_commodity then
-            cecho(string.format("\n<white>Current Commodity:<reset> <cyan>%s<reset>\n",
-                F2T_HAULING_STATE.current_commodity))
-            cecho(string.format("  Expected Profit: <green>%d ig/ton<reset>\n",
-                F2T_HAULING_STATE.expected_profit))
-            cecho(string.format("  Commodity Cycles: <cyan>%d<reset>\n",
-                F2T_HAULING_STATE.commodity_cycles))
-
-            -- Current cycle stats
-            local stats = F2T_HAULING_STATE.current_commodity_stats
-            if stats.lots_bought > 0 or stats.lots_sold > 0 then
-                cecho("  <white>Current Cycle:<reset>\n")
-                if stats.lots_bought > 0 then
-                    cecho(string.format("    Bought: %d lots (cost: %d ig)\n",
-                        stats.lots_bought, stats.total_cost))
+        -- Commodity queue and current commodity (hide during cycle pause - queue is exhausted)
+        if F2T_HAULING_STATE.current_phase ~= "cycle_pausing" then
+            if F2T_HAULING_STATE.commodity_queue and #F2T_HAULING_STATE.commodity_queue > 0 then
+                cecho(string.format("\n<white>Commodity Queue:<reset> <cyan>%d/%d<reset>\n",
+                    F2T_HAULING_STATE.queue_index, #F2T_HAULING_STATE.commodity_queue))
+                for i, comm in ipairs(F2T_HAULING_STATE.commodity_queue) do
+                    local marker = i == F2T_HAULING_STATE.queue_index and " <yellow>*<reset>" or ""
+                    cecho(string.format("  %d. <cyan>%s<reset> (profit: %d ig/ton)%s\n",
+                        i, comm.commodity, comm.expected_profit, marker))
                 end
-                if stats.lots_sold > 0 then
-                    cecho(string.format("    Sold: %d lots (revenue: %d ig)\n",
-                        stats.lots_sold, stats.total_revenue))
+            end
+
+            if F2T_HAULING_STATE.current_commodity then
+                cecho(string.format("\n<white>Current Commodity:<reset> <cyan>%s<reset>\n",
+                    F2T_HAULING_STATE.current_commodity))
+                cecho(string.format("  Expected Profit: <green>%d ig/ton<reset>\n",
+                    F2T_HAULING_STATE.expected_profit))
+                cecho(string.format("  Commodity Cycles: <cyan>%d<reset>\n",
+                    F2T_HAULING_STATE.commodity_cycles))
+
+                -- Current cycle stats
+                local stats = F2T_HAULING_STATE.current_commodity_stats
+                if stats.lots_bought > 0 or stats.lots_sold > 0 then
+                    cecho("  <white>Current Cycle:<reset>\n")
+                    if stats.lots_bought > 0 then
+                        cecho(string.format("    Bought: %d lots (cost: %d ig)\n",
+                            stats.lots_bought, stats.total_cost))
+                    end
+                    if stats.lots_sold > 0 then
+                        cecho(string.format("    Sold: %d lots (revenue: %d ig)\n",
+                            stats.lots_sold, stats.total_revenue))
+                    end
                 end
             end
         end
