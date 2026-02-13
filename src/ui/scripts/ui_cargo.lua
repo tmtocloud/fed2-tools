@@ -84,25 +84,27 @@ function ui_update_cargo_display()
 
     -- Count cargo entries
     local cargo_count = 0
-
     for _ in pairs(cargo) do cargo_count = cargo_count + 1 end
 
-    -- Calculate heights as percentages
-    local max_entries     = 8  -- Maximum entries to show before container fills
+    -- Calculate dropdown height in PIXELS (only dimension that uses pixels)
+    local entry_height_px = 60        -- pixels per entry
+    local separator_height_px = 2     -- pixels per separator
+    local footer_height_px = 30       -- pixels for footer
+    
+    local max_entries = 8
     local visible_entries = math.min(cargo_count, max_entries)
     
-    local footer_height_pct      = 8   -- Footer takes 8% of dropdown height
-    local separator_height_pct   = 0.5 -- Each separator takes 0.5%
-    local total_separator_height = (visible_entries - 1) * separator_height_pct
+    local total_height_px = (visible_entries * entry_height_px) + 
+                           ((visible_entries - 1) * separator_height_px) + 
+                           footer_height_px
     
-    -- Remaining space divided among entries
-    local available_for_entries = 100 - footer_height_pct - total_separator_height
-    local entry_height_pct      = available_for_entries / visible_entries
+    -- Set dropdown height in PIXELS - this is the only fixed pixel dimension
+    UI.cargo_dropdown:resize(nil, total_height_px)
 
-    -- Set dropdown height as percentage of main window
-    -- This determines how much vertical space the cargo display uses
-    local dropdown_height_pct = math.min(50, 5 + (visible_entries * 5))  -- 5% per entry, max 40%
-    UI.cargo_dropdown:resize(nil, dropdown_height_pct .. "%")
+    -- Now calculate percentages WITHIN the dropdown
+    local entry_height_pct = (entry_height_px / total_height_px) * 100
+    local separator_height_pct = (separator_height_px / total_height_px) * 100
+    local footer_height_pct = (footer_height_px / total_height_px) * 100
 
     -- Calculate total tons
     local total_tons = cargo_count * 75
@@ -134,7 +136,7 @@ function ui_update_cargo_display()
             {
                 name      = "cargo_entry_text_" .. entry_num,
                 x         = "0%",
-                y         = "20%",
+                y         = "15%",
                 width     = "65%",
                 height    = "100%",
                 autoWrap  = true,
@@ -184,7 +186,7 @@ function ui_update_cargo_display()
             entry_text:cecho("\n<yellow>" .. (value.origin or "Unknown") .. "<reset>")
         end
 
-        -- Buttons (right side, starting at 67%)
+        -- Buttons (right side, starting at 60%)
         local buttons = {}
 
         if is_delivery then
@@ -192,9 +194,9 @@ function ui_update_cargo_display()
                 {
                     name    = "cargo_deliver_" .. entry_num,
                     x       = "60%",
-                    y       = "30%",
+                    y       = "25%",
                     width   = "19%",
-                    height  = "35%",
+                    height  = "50%",
                     message = "<center>Deliver</center>"
                 },
                 entry
@@ -206,9 +208,9 @@ function ui_update_cargo_display()
                 {
                     name    = "cargo_check_" .. entry_num,
                     x       = "60%",
-                    y       = "30%",
+                    y       = "25%",
                     width   = "19%",
-                    height  = "35%",
+                    height  = "50%",
                     message = "<center>Check Price</center>"
                 },
                 entry
@@ -222,9 +224,9 @@ function ui_update_cargo_display()
                 {
                     name    = "cargo_sell_" .. entry_num,
                     x       = "80%",
-                    y       = "30%",
+                    y       = "25%",
                     width   = "9%",
-                    height  = "35%",
+                    height  = "50%",
                     message = "<center>Sell</center>"
                 },
                 entry
@@ -260,14 +262,17 @@ function ui_update_cargo_display()
         end
     end
 
+    local bump = 0
+    if cargo_count == 1 then bump = 10 end
+    
     -- Footer with total tonnage
     UI.cargo_footer = Geyser.MiniConsole:new(
         {
             name      = "cargo_footer",
             x         = "0%",
-            y         = current_y_pct .. "%",
+            y         = current_y_pct + 2 .. "%",
             width     = "100%",
-            height    = footer_height_pct .. "%",
+            height    = footer_height_pct + bump .. "%",
             autoWrap  = false,
             scrollBar = false,
             fontSize  = text_size,
