@@ -76,6 +76,21 @@ function ui_build_header()
         UI["Label"..i]:setFontSize(12)
     end
 
+    ------------- Buy Fuel Button ------------------------------
+    UI.button_buy_fuel = Geyser.Label:new(
+        {
+            name    = "UI.button_buy_fuel",
+            x       = "26%",
+            y       = "20%",
+            width   = "5%",
+            height  = "60%",
+            message = "<center>Buy Fuel</center>"
+        },
+        UI.top_left_frame
+    )
+    UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
+    UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
+
     -- Make the Hold label (Label6) clickable
     UI.Label6:setClickCallback("ui_toggle_cargo_display")
 
@@ -83,7 +98,7 @@ function ui_build_header()
     UI.cargo_display_visible = false
     UI.cargo_manually_hidden = false
 end
-
+    
 function ui_update_header()
     -- Safety check: don't update if UI hasn't been built yet
     if not UI.Label1 then
@@ -155,5 +170,6 @@ function ui_update_header()
         end
     end
 
+    ui_fuel_status()
     ui_update_for_rank()
 end

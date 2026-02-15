@@ -1,3 +1,36 @@
+function ui_fuel_status()
+    -- Update Buy Fuel button state
+    if UI.button_buy_fuel then
+        local fuel_full = false
+        local is_space  = false
+
+        if gmcp and f2t_is_rank_below("Commander") then UI.button_buy_fuel:hide() end
+        
+        if type(fuel_cur) == "number" and fuel_cur == fuel_max then fuel_full = true end
+        
+        if 
+            gmcp and 
+            gmcp.room and 
+            gmcp.room.info and 
+            gmcp.room.info.flags and
+            f2t_has_value(gmcp.room.info.flags, "space")
+        then is_space = true
+        end
+
+        if fuel_full or is_space then
+            UI.button_buy_fuel:setStyleSheet(UI.style.disabled_button_css)
+            UI.button_buy_fuel:setClickCallback(function() end)
+        else
+            UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
+            UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
+        end
+    end
+end
+
+function ui_buy_fuel()
+    send("buy fuel", false)
+end
+
 -- Run on every update to GMCP room info
 function ui_on_gmcp_room_info()
     local exits = {}
@@ -26,14 +59,7 @@ function ui_on_gmcp_room_info()
         end
     end
 
-    -- grey out buy fuel if in space
-    if f2t_has_value(gmcp.room.info.flags, "space") then
-        UI.button_buy_fuel:setStyleSheet(UI.style.disabled_button_css)
-        UI.button_buy_fuel:setClickCallback(function() end)
-    else
-        UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
-        UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
-    end
+    ui_fuel_status()
 end
 
 function ui_update_for_rank()
@@ -43,11 +69,9 @@ function ui_update_for_rank()
         end
 
         UI.button_status:show()
-        UI.button_buy_fuel:show()
     else
         UI.tab_bottom_right:removeTab("Hauling")
         UI.button_status:hide()
-        UI.button_buy_fuel:hide()
     end
 
     -- Trading: only rank 4+
@@ -102,7 +126,7 @@ function ui_build()
     ui_trading()
     ui_commodities()
     ui_update_for_rank()
-    ui_update_header()
+    tempTimer(10, function() ui_update_header() end)
 
     ui_built = true
     f2t_debug_log("[ui] ui_build finished")

@@ -56,12 +56,10 @@ function f2t_ui_register_event(trigger, action)
 
     if type(action) ~= "string" then error("action function must be given in string form") end
 
-    F2T_UI_STATE.events[action] = {}
+    F2T_UI_STATE.events[action]         = {}
     F2T_UI_STATE.events[action].trigger = trigger
 
-    if F2T_UI_STATE.events[action].id then
-        killAnonymousEventHandler(F2T_UI_STATE.events[action].id)
-    end
+    if F2T_UI_STATE.events[action].id then killAnonymousEventHandler(F2T_UI_STATE.events[action].id) end
 
     F2T_UI_STATE.events[action].id = registerAnonymousEventHandler(trigger, action)
 end
@@ -108,9 +106,7 @@ function f2t_ui_enable()
 
     -- Enable events
     for action, data in pairs(F2T_UI_STATE.events) do
-        if data.id then
-            killAnonymousEventHandler(data.id)
-        end
+        if data.id then killAnonymousEventHandler(data.id) end
 
         F2T_UI_STATE.events[action].id = registerAnonymousEventHandler(data.trigger, action)
         f2t_debug_log("[ui] Enabled event with trigger: %s and action: %s", data.trigger, action)
@@ -155,9 +151,7 @@ function f2t_ui_disable()
 
     -- Disable events
     for action, data in pairs(F2T_UI_STATE.events) do
-        if data.id then
-            killAnonymousEventHandler(data.id)
-        end
+        if data.id then killAnonymousEventHandler(data.id) end
 
         f2t_debug_log("[ui] Disabled event with trigger: %s and action: %s", data.trigger, action)
     end

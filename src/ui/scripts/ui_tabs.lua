@@ -216,7 +216,7 @@ function ui_build_tab_content()
         UI.hauling_container
     )
 
---put trading container in trading tab
+    --put trading container in trading tab
     UI.trading_container = Geyser.Container:new(
         {
             name   = "UI.trading_container",

@@ -38,24 +38,21 @@ function ui_build_quick_buttons()
     UI.button_status:setClickCallback("ui_status")
     UI.button_status:setToolTip("status")
 
-    ------------- Buy Fuel Button ------------------------------
-    UI.button_buy_fuel = Geyser.Label:new(
+    -- Travel button
+    UI.button_travel = Geyser.Label:new(
         {
-            name    = "UI.button_buy_fuel",
+            name   = "UI.button_travel",
             x       = margin_pct .. "%",
             y       = (margin_pct + button_height_pct + button_gap_pct) .. "%",
             width   = (button_width_pct * 2) - margin_pct .. "%",
             height  = button_height_pct - margin_pct .. "%",
-            message = "<center>Buy Fuel</center>"
         },
         UI.top_right_frame
     )
-    UI.button_buy_fuel:setStyleSheet(UI.style.button_css)
-    UI.button_buy_fuel:setClickCallback("ui_buy_fuel")
-end
 
-function ui_buy_fuel()
-    send("buy fuel", false)
+    UI.button_travel:setStyleSheet(UI.style.button_css)
+    UI.button_travel:echo("<center>Travel</center>")
+    UI.button_travel:setClickCallback("ui_toggle_travel")
 end
 
 function ui_score()
