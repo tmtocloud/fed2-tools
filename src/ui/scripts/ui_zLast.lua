@@ -4,18 +4,20 @@ function ui_fuel_status()
         local fuel_full = false
         local is_space  = false
 
-        if gmcp and f2t_is_rank_below("Commander") then UI.button_buy_fuel:hide() end
+        if not gmcp then return end
+
+        local gmcp_room_flags = gmcp.room and gmcp.room.info and gmcp.room.info.flags or {}
+        local gmcp_fuel       = gmcp.char and gmcp.char.ship and gmcp.char.ship.fuel  or {}
         
-        if type(fuel_cur) == "number" and fuel_cur == fuel_max then fuel_full = true end
-        
-        if 
-            gmcp and 
-            gmcp.room and 
-            gmcp.room.info and 
-            gmcp.room.info.flags and
-            f2t_has_value(gmcp.room.info.flags, "space")
-        then is_space = true
+        if f2t_is_rank_below("Commander") then
+            UI.button_buy_fuel:hide()
+        else
+            UI.button_buy_fuel:show()
         end
+        
+        if type(gmcp_fuel.cur) == "number" and gmcp_fuel.cur == gmcp_fuel.max then fuel_full = true end
+        
+        if f2t_has_value(gmcp_room_flags, "space") then is_space = true end
 
         if fuel_full or is_space then
             UI.button_buy_fuel:setStyleSheet(UI.style.disabled_button_css)
